@@ -7,6 +7,7 @@ class AuthProvider with ChangeNotifier {
   User? _currentUser;
   bool _isInitialAuthCheckLoading = false; // For initial app startup check
   bool _isLoginLoading = false; // For login/logout actions
+  String? _errorMessage; // New state variable for error messages
 
   AuthProvider(this._authService) {
     _checkCurrentUser();
@@ -16,6 +17,7 @@ class AuthProvider with ChangeNotifier {
   bool get isInitialAuthCheckLoading => _isInitialAuthCheckLoading;
   bool get isLoginLoading => _isLoginLoading;
   bool get isAuthenticated => _currentUser != null;
+  String? get errorMessage => _errorMessage; // Getter for the new error message
 
   Future<void> _checkCurrentUser() async {
     _isInitialAuthCheckLoading = true;
@@ -27,14 +29,19 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     _isLoginLoading = true;
+    _errorMessage = null; // Clear previous errors
     notifyListeners();
     try {
       _currentUser = await _authService.login(email, password);
       _isLoginLoading = false;
+      if (_currentUser == null) {
+        _errorMessage = 'Invalid email or password. Please try again.';
+      }
       notifyListeners();
       return _currentUser != null;
     } catch (e) {
       _isLoginLoading = false;
+      _errorMessage = 'Invalid email or password. Please try again.';
       notifyListeners();
       return false;
     }
@@ -46,6 +53,11 @@ class AuthProvider with ChangeNotifier {
     await _authService.logout();
     _currentUser = null;
     _isLoginLoading = false;
+    notifyListeners();
+  }
+
+  void clearErrorMessage() {
+    _errorMessage = null;
     notifyListeners();
   }
 }

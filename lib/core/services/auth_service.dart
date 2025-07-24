@@ -10,18 +10,23 @@ class AuthService {
     // Simulate network delay
     await Future.delayed(const Duration(seconds: 1));
 
-    final user = dummyUsers.firstWhere(
-      (u) => u.email == email && u.password == password, // Validate against user's password
-      orElse: () => throw Exception('Invalid credentials'),
-    );
+    User? user;
+    try {
+      user = dummyUsers.firstWhere((u) => u.email == email);
+    } catch (e) {
+      // User not found
+      return null;
+    }
 
-    if (user != null) {
+    if (user.password == password) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_userEmailKey, user.email);
       await prefs.setString(_userRoleKey, user.role.toString());
       return user;
+    } else {
+      // Password does not match
+      return null;
     }
-    return null;
   }
 
   Future<void> logout() async {

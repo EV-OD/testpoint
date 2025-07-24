@@ -41,66 +41,43 @@ final GoRouter Function(AuthProvider) router = (authProvider) => GoRouter(
     final isAuthenticated = authProvider.isAuthenticated;
     final isLoading = authProvider.isInitialAuthCheckLoading;
 
-    print(
-      'Redirect: Path=${state.fullPath}, isAuthenticated=$isAuthenticated, isLoading=$isLoading',
-    );
-
-    // List of routes that are always accessible (public routes)
-    final List<String> publicRoutes = [
-      AppRoutes.login,
-      AppRoutes.initialPasswordChange,
-    ];
-
-    // Check if the current path is one of the public routes
-    final bool isGoingToPublicRoute = publicRoutes.contains(state.fullPath);
-
-    // --- Core Redirect Logic ---
-
-    // 1. If still loading (initial app startup)
+    // 1. If still loading (initial app startup), only allow splash screen.
     if (isLoading) {
-      // If not on the splash screen, redirect to splash.
-      if (state.fullPath != AppRoutes.splash) {
-        print('Redirect: Loading, forcing to splash.');
-        return AppRoutes.splash;
-      }
-      print('Redirect: Loading, staying on splash.');
-      return null; // Stay on splash screen
+      return state.fullPath == AppRoutes.splash ? null : AppRoutes.splash;
     }
 
-    // 2. If loading is complete (isLoading is false)
+    // 2. Once loading is complete (isLoading is false), determine the target route.
+    final String targetRoute = isAuthenticated
+        ? (authProvider.currentUser?.role == UserRole.student
+            ? AppRoutes.studentDashboard
+            : AppRoutes.teacherDashboard)
+        : AppRoutes.login;
 
-    // Determine the target route based on authentication status
-    String? targetRoute;
-    if (isAuthenticated) {
-      if (authProvider.currentUser?.role == UserRole.student) {
-        targetRoute = AppRoutes.studentDashboard;
-      } else if (authProvider.currentUser?.role == UserRole.teacher) {
-        targetRoute = AppRoutes.teacherDashboard;
-      }
-    } else {
-      targetRoute = AppRoutes.login;
+    // If the current path is the target route, no redirect needed.
+    if (state.fullPath == targetRoute) {
+      return null;
     }
 
-    // If the current path is the splash screen, and loading is done, redirect to target.
+    // If the current path is the splash screen, redirect to the target route.
     if (state.fullPath == AppRoutes.splash) {
-      print('Redirect: Splash screen after loading, redirecting to $targetRoute.');
       return targetRoute;
     }
 
-    // If authenticated and trying to go to a public route, redirect to dashboard.
-    if (isAuthenticated && isGoingToPublicRoute) {
-      print('Redirect: Authenticated and on public route, redirecting to $targetRoute.');
+    // If authenticated and trying to access login/password change, redirect to dashboard.
+    if (isAuthenticated &&
+        (state.fullPath == AppRoutes.login ||
+            state.fullPath == AppRoutes.initialPasswordChange)) {
       return targetRoute;
     }
 
-    // If not authenticated and trying to go to a protected route, redirect to login.
-    if (!isAuthenticated && !isGoingToPublicRoute) {
-      print('Redirect: Not authenticated and on protected route, redirecting to $targetRoute.');
+    // If not authenticated and trying to access a protected route, redirect to login.
+    if (!isAuthenticated &&
+        (state.fullPath == AppRoutes.studentDashboard ||
+            state.fullPath == AppRoutes.teacherDashboard)) {
       return targetRoute;
     }
 
-    print('Redirect: No redirect needed. Current path is $state.fullPath');
-    // No redirect needed, stay on the current path
+    // Otherwise, no redirect needed (e.g., already on the correct page, or navigating between protected pages).
     return null;
   },
 );

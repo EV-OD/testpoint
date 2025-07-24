@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:testpoint/providers/auth_provider.dart';
 
@@ -15,8 +14,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
-  String? _errorMessage; // New state variable for error message
-
   @override
   void dispose() {
     _emailController.dispose();
@@ -26,6 +23,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(
+      context,
+    ); // Listen to AuthProvider
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -37,13 +37,26 @@ class _LoginScreenState extends State<LoginScreen> {
               _buildHeader(context),
               const SizedBox(height: 48),
               _buildLoginForm(context),
-              if (_errorMessage != null) // Display error message if not null
+              if (authProvider.errorMessage !=
+                  null) // Display error message from AuthProvider
                 Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                    textAlign: TextAlign.center,
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      authProvider.errorMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               const SizedBox(height: 24),
@@ -101,6 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
               fillColor: theme.colorScheme.surface.withOpacity(0.5),
             ),
             keyboardType: TextInputType.emailAddress,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter your email or student ID';
@@ -112,6 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscureText,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             decoration: InputDecoration(
               labelText: 'Password',
               hintText: 'Enter your password',
@@ -150,46 +165,41 @@ class _LoginScreenState extends State<LoginScreen> {
       onPressed: authProvider.isLoginLoading
           ? null
           : () async {
-              // Clear previous error message
-              setState(() {
-                _errorMessage = null;
-              });
+              // Validate form
+              if (!(_formKey.currentState?.validate() ?? false)) {
+                return;
+              }
 
-              if (_formKey.currentState?.validate() ?? false) {
-                print('LoginScreen: Form validated. Attempting login...');
-                final success = await authProvider.login(
-                  _emailController.text,
-                  _passwordController.text,
-                );
-                print('LoginScreen: Login attempt success: $success');
-                if (!success) {
-                  setState(() {
-                    _errorMessage = 'Invalid email or password.';
-                    print('LoginScreen: Error message set: $_errorMessage');
-                  });
-                } else {
-                  // Clear error message on successful login
-                  setState(() {
-                    _errorMessage = null;
-                  });
-                }
-              } else {
-                print('LoginScreen: Form validation failed.');
+              // Clear any previous error message
+              authProvider.clearErrorMessage();
+
+              // Attempt login
+              final success = await authProvider.login(
+                _emailController.text.trim(),
+                _passwordController.text,
+              );
+
+              if (!success && mounted) {
                 setState(() {
-                  _errorMessage = 'Please correct the errors in the form.';
+                  _passwordController.clear();
                 });
               }
             },
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
       child: authProvider.isLoginLoading
-          ? const CircularProgressIndicator(color: Colors.white)
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
           : const Text(
               'Login',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
