@@ -5,47 +5,47 @@ import 'package:testpoint/models/user_model.dart';
 class AuthProvider with ChangeNotifier {
   final AuthService _authService;
   User? _currentUser;
-  bool _isLoading = false;
+  bool _isInitialAuthCheckLoading = false; // For initial app startup check
+  bool _isLoginLoading = false; // For login/logout actions
 
   AuthProvider(this._authService) {
     _checkCurrentUser();
   }
 
   User? get currentUser => _currentUser;
-  bool get isLoading => _isLoading;
+  bool get isInitialAuthCheckLoading => _isInitialAuthCheckLoading;
+  bool get isLoginLoading => _isLoginLoading;
   bool get isAuthenticated => _currentUser != null;
 
   Future<void> _checkCurrentUser() async {
-    print('AuthProvider: Checking current user...');
-    _isLoading = true;
+    _isInitialAuthCheckLoading = true;
     notifyListeners();
     _currentUser = await _authService.getCurrentUser();
-    _isLoading = false;
-    print('AuthProvider: Current user check complete. isAuthenticated: $isAuthenticated');
+    _isInitialAuthCheckLoading = false;
     notifyListeners();
   }
 
   Future<bool> login(String email, String password) async {
-    _isLoading = true;
+    _isLoginLoading = true;
     notifyListeners();
     try {
       _currentUser = await _authService.login(email, password);
-      _isLoading = false;
+      _isLoginLoading = false;
       notifyListeners();
       return _currentUser != null;
     } catch (e) {
-      _isLoading = false;
+      _isLoginLoading = false;
       notifyListeners();
       return false;
     }
   }
 
   Future<void> logout() async {
-    _isLoading = true;
+    _isLoginLoading = true; // Use login loading for logout as well for simplicity
     notifyListeners();
     await _authService.logout();
     _currentUser = null;
-    _isLoading = false;
+    _isLoginLoading = false;
     notifyListeners();
   }
 }

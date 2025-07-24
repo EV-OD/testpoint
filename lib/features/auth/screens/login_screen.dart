@@ -15,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
+  String? _errorMessage; // New state variable for error message
 
   @override
   void dispose() {
@@ -36,6 +37,15 @@ class _LoginScreenState extends State<LoginScreen> {
               _buildHeader(context),
               const SizedBox(height: 48),
               _buildLoginForm(context),
+              if (_errorMessage != null) // Display error message if not null
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               const SizedBox(height: 24),
               _buildLoginButton(context),
               const SizedBox(height: 16),
@@ -137,19 +147,37 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLoginButton(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     return ElevatedButton(
-      onPressed: authProvider.isLoading
+      onPressed: authProvider.isLoginLoading
           ? null
           : () async {
+              // Clear previous error message
+              setState(() {
+                _errorMessage = null;
+              });
+
               if (_formKey.currentState?.validate() ?? false) {
+                print('LoginScreen: Form validated. Attempting login...');
                 final success = await authProvider.login(
                   _emailController.text,
                   _passwordController.text,
                 );
+                print('LoginScreen: Login attempt success: $success');
                 if (!success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Invalid credentials')),
-                  );
+                  setState(() {
+                    _errorMessage = 'Invalid email or password.';
+                    print('LoginScreen: Error message set: $_errorMessage');
+                  });
+                } else {
+                  // Clear error message on successful login
+                  setState(() {
+                    _errorMessage = null;
+                  });
                 }
+              } else {
+                print('LoginScreen: Form validation failed.');
+                setState(() {
+                  _errorMessage = 'Please correct the errors in the form.';
+                });
               }
             },
       style: ElevatedButton.styleFrom(
@@ -160,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
-      child: authProvider.isLoading
+      child: authProvider.isLoginLoading
           ? const CircularProgressIndicator(color: Colors.white)
           : const Text(
               'Login',

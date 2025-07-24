@@ -39,7 +39,7 @@ final GoRouter Function(AuthProvider) router = (authProvider) => GoRouter(
   redirect: (context, state) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final isAuthenticated = authProvider.isAuthenticated;
-    final isLoading = authProvider.isLoading;
+    final isLoading = authProvider.isInitialAuthCheckLoading;
 
     print(
       'Redirect: Path=${state.fullPath}, isAuthenticated=$isAuthenticated, isLoading=$isLoading',

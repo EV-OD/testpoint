@@ -15,9 +15,11 @@ class StudentDashboard extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authProvider.logout();
-            },
+            onPressed: authProvider.isLoginLoading
+                ? null
+                : () async {
+                    await authProvider.logout();
+                  },
           ),
         ],
       ),
