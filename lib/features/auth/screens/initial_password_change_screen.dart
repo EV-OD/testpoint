@@ -135,15 +135,11 @@ class _InitialPasswordChangeScreenState
         labelText: label,
         hintText: hint,
         prefixIcon: const Icon(Icons.lock_outline),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
         suffixIcon: IconButton(
-          icon: Icon(
-            obscureText ? Icons.visibility_off : Icons.visibility,
-          ),
+          icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility),
           onPressed: onToggleVisibility,
         ),
       ),
@@ -161,18 +157,13 @@ class _InitialPasswordChangeScreenState
       },
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
       ),
       child: const Text(
         'Save and Continue',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
       ),
     );
   }
@@ -212,8 +203,7 @@ class _PasswordCriteria extends StatelessWidget {
 class _CriteriaRow extends StatelessWidget {
   const _CriteriaRow({
     required this.theme,
-    required this.text,
-    this.isValid = false, // Default to false
+    required this.text, // Default to false
   });
 
   final ThemeData theme;
@@ -231,10 +221,7 @@ class _CriteriaRow extends StatelessWidget {
       children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: theme.textTheme.bodySmall?.copyWith(color: color),
-        ),
+        Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
       ],
     );
   }

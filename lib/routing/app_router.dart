@@ -1,5 +1,4 @@
 import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:testpoint/config/app_routes.dart';
@@ -49,8 +48,8 @@ final GoRouter Function(AuthProvider) router = (authProvider) => GoRouter(
     // 2. Once loading is complete (isLoading is false), determine the target route.
     final String targetRoute = isAuthenticated
         ? (authProvider.currentUser?.role == UserRole.student
-            ? AppRoutes.studentDashboard
-            : AppRoutes.teacherDashboard)
+              ? AppRoutes.studentDashboard
+              : AppRoutes.teacherDashboard)
         : AppRoutes.login;
 
     // If the current path is the target route, no redirect needed.
