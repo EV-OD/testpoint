@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Test.md",
+                "file": "student.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Test"
+              "title": "student"
             }
           },
           {
@@ -199,10 +199,10 @@
   },
   "active": "2cf9d77b054b61ad",
   "lastOpenFiles": [
+    "Test.md",
     "Teacher.md",
     "student.md",
     "Test Point.md",
-    "Test.md",
     "create a link.md"
   ]
 }
