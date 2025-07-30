@@ -8,21 +8,22 @@ class StudentSettings extends StatelessWidget {
     return ListView(
       children: [
         _buildSection(
-          title: 'Account',
+          title: 'Appearance',
           items: [
             _SettingsItem(
-              icon: Icons.lock_outline,
-              title: 'Change Password',
+              icon: Icons.brightness_6_outlined,
+              title: 'Theme',
+              subtitle: 'System',
               onTap: () {
-                // TODO: Implement password change
+                // TODO: Implement theme settings
               },
             ),
             _SettingsItem(
-              icon: Icons.security,
-              title: 'Two-Factor Authentication',
-              subtitle: 'Off',
+              icon: Icons.text_fields,
+              title: 'Text Size',
+              subtitle: 'Normal',
               onTap: () {
-                // TODO: Implement 2FA settings
+                // TODO: Implement text size settings
               },
             ),
           ],
@@ -57,22 +58,21 @@ class StudentSettings extends StatelessWidget {
           ],
         ),
         _buildSection(
-          title: 'Appearance',
+          title: 'Account',
           items: [
             _SettingsItem(
-              icon: Icons.brightness_6_outlined,
-              title: 'Theme',
-              subtitle: 'System',
+              icon: Icons.lock_outline,
+              title: 'Change Password',
               onTap: () {
-                // TODO: Implement theme settings
+                // TODO: Implement password change
               },
             ),
             _SettingsItem(
-              icon: Icons.text_fields,
-              title: 'Text Size',
-              subtitle: 'Normal',
+              icon: Icons.security,
+              title: 'Two-Factor Authentication',
+              subtitle: 'Off',
               onTap: () {
-                // TODO: Implement text size settings
+                // TODO: Implement 2FA settings
               },
             ),
           ],
