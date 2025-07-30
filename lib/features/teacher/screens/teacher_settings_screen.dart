@@ -18,6 +18,14 @@ class TeacherSettingsScreen extends StatelessWidget {
                 // TODO: Implement theme switching
               },
             ),
+            _SettingsItem(
+              icon: Icons.text_fields,
+              title: 'Text Size',
+              subtitle: 'Normal',
+              onTap: () {
+                // TODO: Implement text size settings
+              },
+            ),
           ],
         ),
         _buildSection(
@@ -68,6 +76,13 @@ class TeacherSettingsScreen extends StatelessWidget {
               icon: Icons.info,
               title: 'Version',
               subtitle: '1.0.0',
+            ),
+            _SettingsItem(
+              icon: Icons.help_outline,
+              title: 'Help',
+              onTap: () {
+                // TODO: Implement help screen
+              },
             ),
             _SettingsItem(
               icon: Icons.policy,
