@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:testpoint/providers/auth_provider.dart';
+import 'package:testpoint/features/student/widgets/student_test_list.dart';
 
 enum NavigationTab { dashboard, profile, settings }
 
@@ -27,16 +28,55 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   Widget _buildDashboardContent() {
-    final authProvider = Provider.of<AuthProvider>(context);
-    return Center(
+    return DefaultTabController(
+      length: 2,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Welcome, ${authProvider.currentUser?.name ?? 'Student'}!'),
-          Text('Role: ${authProvider.currentUser?.role.toString().split('.').last ?? 'N/A'}'),
-          // TODO: Add tabs for pending and completed tests
+          const TabBar(
+            tabs: [
+              Tab(text: 'Pending Tests'),
+              Tab(text: 'Completed Tests'),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildTestList(isCompleted: false),
+                _buildTestList(isCompleted: true),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTestList({required bool isCompleted}) {
+    // TODO: Replace with actual data from backend
+    final dummyTests = [
+      StudentTest(
+        id: '1',
+        name: 'Mathematics Mid-term',
+        subject: 'Mathematics',
+        scheduledDate: DateTime.now().add(const Duration(days: 1)),
+        duration: 60,
+        isCompleted: isCompleted,
+        score: isCompleted ? 85 : null,
+      ),
+      StudentTest(
+        id: '2',
+        name: 'Science Quiz',
+        subject: 'Science',
+        scheduledDate: DateTime.now().add(const Duration(days: 3)),
+        duration: 45,
+        isCompleted: isCompleted,
+        score: isCompleted ? 92 : null,
+      ),
+    ];
+
+    return StudentTestList(
+      tests: dummyTests.where((test) => test.isCompleted == isCompleted).toList(),
+      isCompletedTab: isCompleted,
     );
   }
 
