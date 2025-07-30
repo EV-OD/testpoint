@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:testpoint/providers/auth_provider.dart';
 import 'package:testpoint/features/student/widgets/student_test_list.dart';
+import 'package:testpoint/features/student/screens/student_profile.dart';
+import 'package:testpoint/features/student/screens/student_settings.dart';
 
 enum NavigationTab { dashboard, profile, settings }
 
@@ -81,17 +83,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   Widget _buildProfileContent() {
-    return const Center(
-      child: Text('Profile'),
-      // TODO: Implement profile screen
-    );
+    return const StudentProfile();
   }
 
   Widget _buildSettingsContent() {
-    return const Center(
-      child: Text('Settings'),
-      // TODO: Implement settings screen
-    );
+    return const StudentSettings();
   }
 
   @override
