@@ -181,19 +181,19 @@ class _PasswordCriteria extends StatelessWidget {
         _CriteriaRow(
           theme: theme,
           text: '8+ characters',
-          // TODO: Add validation state
+          isValid: false, // TODO: Add validation state
         ),
         const SizedBox(height: 4),
         _CriteriaRow(
           theme: theme,
           text: 'Uppercase & lowercase letters',
-          // TODO: Add validation state
+          isValid: false, // TODO: Add validation state
         ),
         const SizedBox(height: 4),
         _CriteriaRow(
           theme: theme,
           text: 'At least one number & symbol',
-          // TODO: Add validation state
+          isValid: false, // TODO: Add validation state
         ),
       ],
     );
@@ -203,7 +203,7 @@ class _PasswordCriteria extends StatelessWidget {
 class _CriteriaRow extends StatelessWidget {
   const _CriteriaRow({
     required this.theme,
-    required this.text, // Default to false
+    required this.text, required this.isValid,
   });
 
   final ThemeData theme;
