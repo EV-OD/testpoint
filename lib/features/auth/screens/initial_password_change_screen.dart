@@ -203,7 +203,8 @@ class _PasswordCriteria extends StatelessWidget {
 class _CriteriaRow extends StatelessWidget {
   const _CriteriaRow({
     required this.theme,
-    required this.text, required this.isValid,
+    required this.text, 
+    this.isValid = false, // Added default value
   });
 
   final ThemeData theme;
