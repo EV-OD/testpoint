@@ -1,0 +1,277 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
+import 'package:testpoint/models/test_model.dart';
+import 'package:testpoint/models/question_model.dart';
+import 'package:testpoint/models/group_model.dart';
+
+class TestRepository {
+  final FirebaseFirestore _firestore;
+  final auth.FirebaseAuth _auth;
+
+  TestRepository({
+    FirebaseFirestore? firestore,
+    auth.FirebaseAuth? firebaseAuth,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = firebaseAuth ?? auth.FirebaseAuth.instance;
+
+  // Collection references
+  CollectionReference get _testsCollection => _firestore.collection('tests');
+  CollectionReference get _groupsCollection => _firestore.collection('groups');
+
+  // Test CRUD operations
+  Future<String> createTest(Test test) async {
+    try {
+      final docRef = await _testsCollection.add(test.toMap());
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to create test: $e');
+    }
+  }
+
+  Future<void> updateTest(Test test) async {
+    try {
+      await _testsCollection.doc(test.id).update(test.toMap());
+    } catch (e) {
+      throw Exception('Failed to update test: $e');
+    }
+  }
+
+  Future<Test?> getTest(String testId) async {
+    try {
+      final doc = await _testsCollection.doc(testId).get();
+      if (!doc.exists) return null;
+      
+      return Test.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    } catch (e) {
+      throw Exception('Failed to get test: $e');
+    }
+  }
+
+  Future<List<Test>> getTestsByCreator(String creatorId) async {
+    try {
+      final querySnapshot = await _testsCollection
+          .where('test_maker', isEqualTo: creatorId)
+          .orderBy('created_at', descending: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Test.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get tests by creator: $e');
+    }
+  }
+
+  Future<List<Test>> getTestsByGroup(String groupId) async {
+    try {
+      final querySnapshot = await _testsCollection
+          .where('group_id', isEqualTo: groupId)
+          .orderBy('date_time', descending: false)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Test.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get tests by group: $e');
+    }
+  }
+
+  Future<void> deleteTest(String testId) async {
+    try {
+      // First delete all questions in the subcollection
+      final questionsSnapshot = await _testsCollection
+          .doc(testId)
+          .collection('questions')
+          .get();
+
+      final batch = _firestore.batch();
+      
+      // Delete all questions
+      for (final questionDoc in questionsSnapshot.docs) {
+        batch.delete(questionDoc.reference);
+      }
+      
+      // Delete the test document
+      batch.delete(_testsCollection.doc(testId));
+      
+      await batch.commit();
+    } catch (e) {
+      throw Exception('Failed to delete test: $e');
+    }
+  }
+
+  // Question CRUD operations
+  Future<String> addQuestion(String testId, Question question) async {
+    try {
+      final docRef = await _testsCollection
+          .doc(testId)
+          .collection('questions')
+          .add(question.toMap());
+
+      // Update question count in the test document
+      await _updateQuestionCount(testId);
+      
+      return docRef.id;
+    } catch (e) {
+      throw Exception('Failed to add question: $e');
+    }
+  }
+
+  Future<void> updateQuestion(String testId, String questionId, Question question) async {
+    try {
+      await _testsCollection
+          .doc(testId)
+          .collection('questions')
+          .doc(questionId)
+          .update(question.toMap());
+    } catch (e) {
+      throw Exception('Failed to update question: $e');
+    }
+  }
+
+  Future<void> deleteQuestion(String testId, String questionId) async {
+    try {
+      await _testsCollection
+          .doc(testId)
+          .collection('questions')
+          .doc(questionId)
+          .delete();
+
+      // Update question count in the test document
+      await _updateQuestionCount(testId);
+    } catch (e) {
+      throw Exception('Failed to delete question: $e');
+    }
+  }
+
+  Future<List<Question>> getQuestions(String testId) async {
+    try {
+      final querySnapshot = await _testsCollection
+          .doc(testId)
+          .collection('questions')
+          .orderBy('created_at')
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Question.fromMap(doc.id, doc.data()))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get questions: $e');
+    }
+  }
+
+  // Helper method to update question count
+  Future<void> _updateQuestionCount(String testId) async {
+    try {
+      final questionsSnapshot = await _testsCollection
+          .doc(testId)
+          .collection('questions')
+          .get();
+
+      await _testsCollection.doc(testId).update({
+        'question_count': questionsSnapshot.docs.length,
+      });
+    } catch (e) {
+      throw Exception('Failed to update question count: $e');
+    }
+  }
+
+  // Group operations
+  Future<List<Group>> getGroups() async {
+    try {
+      final querySnapshot = await _groupsCollection
+          .orderBy('name')
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => Group.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get groups: $e');
+    }
+  }
+
+  Future<Group?> getGroup(String groupId) async {
+    try {
+      final doc = await _groupsCollection.doc(groupId).get();
+      if (!doc.exists) return null;
+      
+      return Group.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    } catch (e) {
+      throw Exception('Failed to get group: $e');
+    }
+  }
+
+  // Stream methods for real-time updates
+  Stream<List<Test>> watchTestsByCreator(String creatorId) {
+    return _testsCollection
+        .where('test_maker', isEqualTo: creatorId)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Test.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
+  Stream<List<Question>> watchQuestions(String testId) {
+    return _testsCollection
+        .doc(testId)
+        .collection('questions')
+        .orderBy('created_at')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Question.fromMap(doc.id, doc.data()))
+            .toList());
+  }
+
+  Stream<Test?> watchTest(String testId) {
+    return _testsCollection
+        .doc(testId)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists) return null;
+          return Test.fromMap(snapshot.id, snapshot.data() as Map<String, dynamic>);
+        });
+  }
+
+  // Validation methods
+  Future<bool> validateTestOwnership(String testId, String userId) async {
+    try {
+      final test = await getTest(testId);
+      return test?.testMaker == userId;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> canEditTest(String testId, String userId) async {
+    try {
+      final test = await getTest(testId);
+      if (test == null) return false;
+      
+      // Check ownership
+      if (test.testMaker != userId) return false;
+      
+      // Check if test is not yet published (can still edit)
+      return !test.isPublished;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> canDeleteTest(String testId, String userId) async {
+    try {
+      final test = await getTest(testId);
+      if (test == null) return false;
+      
+      // Check ownership
+      if (test.testMaker != userId) return false;
+      
+      // Check if test is not yet published (can still delete)
+      return !test.isPublished;
+    } catch (e) {
+      return false;
+    }
+  }
+}

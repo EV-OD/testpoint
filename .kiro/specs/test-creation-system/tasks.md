@@ -40,14 +40,19 @@
 
 ## Remaining Implementation Tasks
 
-- [ ] 1. Create core data models and Firebase integration
+- [x] 1. Create core data models and Firebase integration
+
+
   - Implement Test, Question, QuestionOption, and Group models aligned with Firebase structure
   - Create model serialization methods for Firestore document conversion (toMap/fromMap)
   - Add Firebase dependencies (cloud_firestore, firebase_auth, firebase_core)
   - Write unit tests for model validation and Firebase serialization
   - _Requirements: 1.2, 2.2, 2.3_
 
-- [ ] 2. Implement Firebase repository and service layer
+- [x] 2. Implement Firebase repository and service layer
+
+
+
   - Create TestRepository with Firestore integration for tests collection
   - Implement GroupService to fetch available groups from Firebase
   - Add methods for CRUD operations on tests and questions subcollection
@@ -55,6 +60,9 @@
   - Create Firebase security rules for teacher access control based on test_maker
   - Write unit tests for repository methods, ownership validation, and Firebase operations
   - _Requirements: 1.1, 1.3, 2.4, 4.4, 5.5, 6.1, 6.2_
+
+
+
 
 - [ ] 3. Create TestProvider for state management
   - Implement TestProvider extending ChangeNotifier
