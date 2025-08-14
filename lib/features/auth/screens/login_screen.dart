@@ -63,6 +63,8 @@ class _LoginScreenState extends State<LoginScreen> {
               _buildLoginButton(context),
               const SizedBox(height: 16),
               _buildForgotPasswordButton(context),
+              const SizedBox(height: 8),
+              _buildRegisterButton(context),
             ],
           ),
         ),
@@ -103,6 +105,9 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           TextFormField(
             controller: _emailController,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               labelText: 'Email / Student ID',
               hintText: 'Enter your email or student ID',
@@ -111,7 +116,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+              fillColor: theme.brightness == Brightness.dark
+                  ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.3)
+                  : theme.colorScheme.surface.withOpacity(0.5),
             ),
             keyboardType: TextInputType.emailAddress,
             autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -215,6 +222,22 @@ class _LoginScreenState extends State<LoginScreen> {
       },
       child: Text(
         'Forgot Password?',
+        style: TextStyle(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegisterButton(BuildContext context) {
+    final theme = Theme.of(context);
+    return TextButton(
+      onPressed: () {
+        // TODO: Navigate to register screen
+      },
+      child: Text(
+        'Don\'t have an account? Sign up',
         style: TextStyle(
           color: theme.colorScheme.primary,
           fontWeight: FontWeight.bold,

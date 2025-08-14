@@ -3,6 +3,8 @@ import 'package:testpoint/models/question_model.dart';
 import 'package:testpoint/models/group_model.dart';
 import 'package:testpoint/models/user_model.dart';
 
+enum TestStatus { draft, published, completed }
+
 class Test {
   final String id; // Firebase document ID
   final String name;
@@ -12,6 +14,7 @@ class Test {
   final DateTime dateTime; // scheduled date/time
   final String testMaker; // Firebase Auth UID of teacher who created the test
   final DateTime createdAt;
+  final TestStatus status; // draft, published, or completed
 
   // Additional local fields (not stored in Firebase)
   final Group? group; // Populated from groupId
@@ -27,15 +30,18 @@ class Test {
     required this.dateTime,
     required this.testMaker,
     required this.createdAt,
+    this.status = TestStatus.draft,
     this.group,
     this.questions,
     this.creator,
   });
 
   // Computed properties
-  bool get isPublished => DateTime.now().isAfter(dateTime);
+  bool get isDraft => status == TestStatus.draft;
+  bool get isPublished => status == TestStatus.published;
+  bool get isCompleted => status == TestStatus.completed;
   bool get isExpired => DateTime.now().isAfter(dateTime.add(Duration(minutes: timeLimit)));
-  bool get isAvailable => DateTime.now().isAfter(dateTime) && !isExpired;
+  bool get isAvailable => isPublished && DateTime.now().isAfter(dateTime) && !isExpired;
 
   // Firebase serialization methods
   Map<String, dynamic> toMap() {
@@ -47,6 +53,7 @@ class Test {
       'date_time': Timestamp.fromDate(dateTime),
       'test_maker': testMaker,
       'created_at': Timestamp.fromDate(createdAt),
+      'status': status.name,
     };
   }
 
@@ -57,10 +64,54 @@ class Test {
       groupId: map['group_id'] ?? '',
       timeLimit: map['time_limit'] ?? 0,
       questionCount: map['question_count'] ?? 0,
-      dateTime: (map['date_time'] as Timestamp).toDate(),
+      dateTime: _parseDateTime(map['date_time']),
       testMaker: map['test_maker'] ?? '',
-      createdAt: (map['created_at'] as Timestamp).toDate(),
+      createdAt: _parseDateTime(map['created_at']),
+      status: _parseStatus(map['status']),
     );
+  }
+
+  // Helper method to parse TestStatus from string
+  static TestStatus _parseStatus(dynamic value) {
+    if (value == null) return TestStatus.draft;
+    
+    switch (value.toString().toLowerCase()) {
+      case 'published':
+        return TestStatus.published;
+      case 'completed':
+        return TestStatus.completed;
+      case 'draft':
+      default:
+        return TestStatus.draft;
+    }
+  }
+
+  // Helper method to parse DateTime from various formats
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) {
+      return DateTime.now();
+    }
+    
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+    
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        // If parsing fails, return current time
+        return DateTime.now();
+      }
+    }
+    
+    if (value is int) {
+      // Assume it's milliseconds since epoch
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    
+    // Fallback to current time
+    return DateTime.now();
   }
 
   // Copy with method for updates
@@ -73,6 +124,7 @@ class Test {
     DateTime? dateTime,
     String? testMaker,
     DateTime? createdAt,
+    TestStatus? status,
     Group? group,
     List<Question>? questions,
     User? creator,
@@ -86,6 +138,7 @@ class Test {
       dateTime: dateTime ?? this.dateTime,
       testMaker: testMaker ?? this.testMaker,
       createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
       group: group ?? this.group,
       questions: questions ?? this.questions,
       creator: creator ?? this.creator,

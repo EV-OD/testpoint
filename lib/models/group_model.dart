@@ -42,8 +42,36 @@ class Group {
       id: id,
       name: map['name'] ?? '',
       userIds: List<String>.from(map['userIds'] ?? []),
-      createdAt: (map['created_at'] as Timestamp).toDate(),
+      createdAt: _parseDateTime(map['created_at']),
     );
+  }
+
+  // Helper method to parse DateTime from various formats
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) {
+      return DateTime.now();
+    }
+    
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+    
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        // If parsing fails, return current time
+        return DateTime.now();
+      }
+    }
+    
+    if (value is int) {
+      // Assume it's milliseconds since epoch
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    
+    // Fallback to current time
+    return DateTime.now();
   }
 
   // Copy with method for updates

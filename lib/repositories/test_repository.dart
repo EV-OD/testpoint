@@ -41,7 +41,20 @@ class TestRepository {
       final doc = await _testsCollection.doc(testId).get();
       if (!doc.exists) return null;
       
-      return Test.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+      final test = Test.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+      
+      // Fetch group information if groupId exists
+      Group? group;
+      if (test.groupId.isNotEmpty) {
+        try {
+          group = await getGroup(test.groupId);
+        } catch (e) {
+          // If group fetch fails, continue without group info
+          print('Failed to fetch group ${test.groupId}: $e');
+        }
+      }
+      
+      return test.copyWith(group: group);
     } catch (e) {
       throw Exception('Failed to get test: $e');
     }
@@ -51,12 +64,33 @@ class TestRepository {
     try {
       final querySnapshot = await _testsCollection
           .where('test_maker', isEqualTo: creatorId)
-          .orderBy('created_at', descending: true)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => Test.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-          .toList();
+      final tests = <Test>[];
+      
+      // Process each test and populate group information
+      for (final doc in querySnapshot.docs) {
+        final test = Test.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+        
+        // Fetch group information if groupId exists
+        Group? group;
+        if (test.groupId.isNotEmpty) {
+          try {
+            group = await getGroup(test.groupId);
+          } catch (e) {
+            // If group fetch fails, continue without group info
+            print('Failed to fetch group ${test.groupId}: $e');
+          }
+        }
+        
+        // Add test with populated group
+        tests.add(test.copyWith(group: group));
+      }
+      
+      // Sort by created_at in memory to avoid composite index requirement
+      tests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return tests;
     } catch (e) {
       throw Exception('Failed to get tests by creator: $e');
     }
@@ -69,9 +103,23 @@ class TestRepository {
           .orderBy('date_time', descending: false)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => Test.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-          .toList();
+      final tests = <Test>[];
+      
+      // Get the group information once since all tests belong to the same group
+      Group? group;
+      try {
+        group = await getGroup(groupId);
+      } catch (e) {
+        print('Failed to fetch group $groupId: $e');
+      }
+      
+      // Process each test and add the group information
+      for (final doc in querySnapshot.docs) {
+        final test = Test.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+        tests.add(test.copyWith(group: group));
+      }
+      
+      return tests;
     } catch (e) {
       throw Exception('Failed to get tests by group: $e');
     }
@@ -207,11 +255,34 @@ class TestRepository {
   Stream<List<Test>> watchTestsByCreator(String creatorId) {
     return _testsCollection
         .where('test_maker', isEqualTo: creatorId)
-        .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Test.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
+        .asyncMap((snapshot) async {
+          final tests = <Test>[];
+          
+          // Process each test and populate group information
+          for (final doc in snapshot.docs) {
+            final test = Test.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+            
+            // Fetch group information if groupId exists
+            Group? group;
+            if (test.groupId.isNotEmpty) {
+              try {
+                group = await getGroup(test.groupId);
+              } catch (e) {
+                // If group fetch fails, continue without group info
+                print('Failed to fetch group ${test.groupId}: $e');
+              }
+            }
+            
+            // Add test with populated group
+            tests.add(test.copyWith(group: group));
+          }
+          
+          // Sort by created_at in memory to avoid composite index requirement
+          tests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          
+          return tests;
+        });
   }
 
   Stream<List<Question>> watchQuestions(String testId) {
@@ -229,9 +300,23 @@ class TestRepository {
     return _testsCollection
         .doc(testId)
         .snapshots()
-        .map((snapshot) {
+        .asyncMap((snapshot) async {
           if (!snapshot.exists) return null;
-          return Test.fromMap(snapshot.id, snapshot.data() as Map<String, dynamic>);
+          
+          final test = Test.fromMap(snapshot.id, snapshot.data() as Map<String, dynamic>);
+          
+          // Fetch group information if groupId exists
+          Group? group;
+          if (test.groupId.isNotEmpty) {
+            try {
+              group = await getGroup(test.groupId);
+            } catch (e) {
+              // If group fetch fails, continue without group info
+              print('Failed to fetch group ${test.groupId}: $e');
+            }
+          }
+          
+          return test.copyWith(group: group);
         });
   }
 

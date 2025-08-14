@@ -76,7 +76,8 @@ This collection stores all the tests created by teachers or admins.
   "question_count": "Number",
   "date_time": "Timestamp",
   "test_maker": "String",
-  "created_at": "Timestamp"
+  "created_at": "Timestamp",
+  "status": "String"
 }
 ```
 
@@ -89,6 +90,31 @@ This collection stores all the tests created by teachers or admins.
 -   **`date_time`**: (Timestamp) The scheduled start date and time for the test.
 -   **`test_maker`**: (String) The Firebase Authentication UID of the teacher who created this test.
 -   **`created_at`**: (Timestamp) The date and time the test was created.
+-   **`status`**: (String) The current status of the test. Can be one of the following values:
+    -   `"draft"`: Test is being created/edited and not yet available to students.
+    -   `"published"`: Test is published and available to students at the scheduled time.
+    -   `"completed"`: Test has finished and is no longer available for taking.
+
+### Test Status Workflow
+
+Tests follow a specific lifecycle managed by the `status` field:
+
+1. **Draft Phase** (`status: "draft"`)
+   - Test is being created or edited by the teacher
+   - Not visible to students
+   - Can be modified, deleted, or published
+   - Must have at least one question to be published
+
+2. **Published Phase** (`status: "published"`)
+   - Test is available to students at the scheduled `date_time`
+   - Cannot be deleted
+   - Can be restored to draft status if the test hasn't started yet
+   - Automatically becomes available when `date_time` is reached
+
+3. **Completed Phase** (`status: "completed"`)
+   - Test has finished (past `date_time` + `time_limit`)
+   - Read-only for viewing results and analytics
+   - Cannot be modified or deleted
 
 ### Subcollections
 
@@ -172,3 +198,54 @@ This collection stores individual test-taking sessions when students take tests.
 -   **`violations`**: (Array of Objects) List of anti-cheating violations detected during the session.
 -   **`final_score`**: (Number) Calculated score as a percentage (0-100).
 -   **`created_at`**: (Timestamp) When the test session was created.
+
+---
+
+## Teacher Dashboard Features
+
+The teacher dashboard provides comprehensive test management capabilities organized by test status:
+
+### Dashboard Tabs
+
+1. **Drafts Tab**
+   - Shows all tests with `status: "draft"`
+   - Actions available: Edit, Publish (if questions exist), Delete
+   - Tests can be freely modified and deleted
+
+2. **Published Tab**
+   - Shows all tests with `status: "published"`
+   - Actions available: View Details, Restore to Draft (if not started)
+   - Tests become read-only once students can access them
+
+3. **Completed Tab**
+   - Shows all tests with `status: "completed"`
+   - Actions available: View Results, Analytics
+   - All tests are read-only for historical reference
+
+### Real-time Updates
+
+The dashboard uses Firebase real-time listeners to automatically update when:
+- New tests are created
+- Test status changes
+- Tests are deleted or modified
+- Questions are added/removed
+
+### Firebase Indexes
+
+The following single-field indexes are automatically created by Firebase:
+- `tests.test_maker` (for filtering by teacher)
+- `tests.group_id` (for filtering by group)
+- `tests.status` (for filtering by status)
+- `tests.created_at` (for sorting)
+- `tests.date_time` (for sorting)
+
+**Note**: Composite indexes are avoided by sorting results in memory rather than in the database query to prevent index requirements that would need manual creation in the Firebase Console.
+
+### Test Management Actions
+
+- **Create Test**: Starts a new test in draft status
+- **Edit Test**: Modify test details and questions (only available for drafts)
+- **Publish Test**: Change status from draft to published (requires at least one question)
+- **Delete Test**: Remove test completely (only available for drafts)
+- **Restore to Draft**: Change published test back to draft status (only if test hasn't started)
+- **View Details**: See test information and student results

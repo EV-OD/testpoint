@@ -75,6 +75,32 @@ class TestService {
     }
   }
 
+  // Special method for updating test status (bypasses edit restrictions)
+  Future<Test> updateTestStatus(Test test) async {
+    try {
+      // Validate ownership
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('User must be authenticated to update tests');
+      }
+
+      if (!await validateTestOwnership(test.id, currentUser.uid)) {
+        throw Exception('User does not have permission to update this test');
+      }
+
+      // For status updates, we don't check canEditTest to allow status changes
+      // But we do validate the test data
+      if (!validateTest(test)) {
+        throw Exception('Invalid test data: ${test.getValidationErrors().join(', ')}');
+      }
+
+      await _testRepository.updateTest(test);
+      return test;
+    } catch (e) {
+      throw Exception('Failed to update test status: $e');
+    }
+  }
+
   Future<void> deleteTest(String testId) async {
     try {
       final currentUser = _auth.currentUser;

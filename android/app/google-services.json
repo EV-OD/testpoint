@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "953282742732",
+    "project_id": "testpoint-81a9a",
+    "storage_bucket": "testpoint-81a9a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:953282742732:android:000ed33a3fb77a393b3569",
+        "android_client_info": {
+          "package_name": "com.example.testpoint"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAeXoCjsYwSBmlaZtGFl-YfmkihHpEN6Ss"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

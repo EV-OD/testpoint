@@ -35,13 +35,13 @@ class AuthProvider with ChangeNotifier {
       _currentUser = await _authService.login(email, password);
       _isLoginLoading = false;
       if (_currentUser == null) {
-        _errorMessage = 'Invalid email or password. Please try again.';
+        _errorMessage = 'Login failed. Please check your credentials.';
       }
       notifyListeners();
       return _currentUser != null;
     } catch (e) {
       _isLoginLoading = false;
-      _errorMessage = 'Invalid email or password. Please try again.';
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
       notifyListeners();
       return false;
     }

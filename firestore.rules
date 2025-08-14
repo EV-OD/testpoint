@@ -1,0 +1,115 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Function to check if the user making the request is an admin
+    function isAdmin() {
+      // Check the 'role' field in the user's own document in the 'users' collection.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Function to check if the user making the request is a teacher
+    function isTeacher() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+    
+    // Function to check if the user making the request is a student
+    function isStudent() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+    }
+    
+    // Function to check if the user is admin or teacher
+    function isAdminOrTeacher() {
+      return isAdmin() || isTeacher();
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Allow authenticated users to read the list of users.
+      allow list: if request.auth != null;
+      
+      // Allow an admin to read any individual user document.
+      // Allow a user to read their own document.
+      allow get: if request.auth != null && (isAdmin() || request.auth.uid == userId);
+      
+      // Only allow admins to create, update, or delete users.
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Groups collection
+    match /groups/{groupId} {
+      // Allow admins and teachers to read, create, update, and delete groups
+      allow read, write: if request.auth != null && isAdminOrTeacher();
+      
+      // Allow students to read groups they are members of
+      allow read: if request.auth != null && 
+                     isStudent() && 
+                     request.auth.uid in resource.data.userIds;
+    }
+
+    // Tests collection
+    match /tests/{testId} {
+      // Allow admins to read and write all tests
+      allow read, write: if request.auth != null && isAdmin();
+      
+      // Allow teachers to read and write tests they created
+      allow read, write: if request.auth != null && 
+                           isTeacher() && 
+                           resource.data.test_maker == request.auth.uid;
+      
+      // Allow teachers to create new tests (for create operations, use request.resource)
+      allow create: if request.auth != null && 
+                      isTeacher() && 
+                      request.resource.data.test_maker == request.auth.uid;
+      
+      // Allow students to read tests assigned to their groups
+      allow read: if request.auth != null && 
+                     isStudent() && 
+                     request.auth.uid in get(/databases/$(database)/documents/groups/$(resource.data.group_id)).data.userIds;
+
+      // Questions subcollection
+      match /questions/{questionId} {
+        // Allow admins full access to questions
+        allow read, write: if request.auth != null && isAdmin();
+        
+        // Allow teachers to read and write questions for tests they created
+        allow read, write: if request.auth != null && 
+                             isTeacher() && 
+                             get(/databases/$(database)/documents/tests/$(testId)).data.test_maker == request.auth.uid;
+        
+        // Allow students to read questions for tests they can access
+        allow read: if request.auth != null && 
+                       isStudent() && 
+                       request.auth.uid in get(/databases/$(database)/documents/groups/$(get(/databases/$(database)/documents/tests/$(testId)).data.group_id)).data.userIds;
+      }
+    }
+
+    // Test sessions collection
+    match /test_sessions/{sessionId} {
+      // Allow admins to read all test sessions
+      allow read: if request.auth != null && isAdmin();
+      
+      // Allow teachers to read test sessions for their tests
+      allow read: if request.auth != null && 
+                     isTeacher() && 
+                     get(/databases/$(database)/documents/tests/$(resource.data.test_id)).data.test_maker == request.auth.uid;
+      
+      // Allow students to read and write their own test sessions
+      allow read, write: if request.auth != null && 
+                           isStudent() && 
+                           resource.data.student_id == request.auth.uid;
+      
+      // Allow students to create new test sessions for tests they can access
+      allow create: if request.auth != null && 
+                      isStudent() && 
+                      request.resource.data.student_id == request.auth.uid &&
+                      request.auth.uid in get(/databases/$(database)/documents/groups/$(get(/databases/$(database)/documents/tests/$(request.resource.data.test_id)).data.group_id)).data.userIds;
+    }
+
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

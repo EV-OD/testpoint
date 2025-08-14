@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum NavigationItem {
-  dashboard,
-  profile,
-  settings,
-}
+enum NavigationItem { dashboard, profile, settings }
 
 class AppBottomNavigation extends StatelessWidget {
   final NavigationItem selectedItem;
@@ -20,8 +16,9 @@ class AppBottomNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return NavigationBar(
       selectedIndex: selectedItem.index,
-      onDestinationSelected: (index) =>
-          onItemSelected(NavigationItem.values[index]),
+      onDestinationSelected: (index) {
+        onItemSelected(NavigationItem.values[index]);
+      },
       destinations: const [
         NavigationDestination(
           icon: Icon(Icons.dashboard_outlined),

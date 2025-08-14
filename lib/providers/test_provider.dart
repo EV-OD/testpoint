@@ -24,6 +24,7 @@ class TestProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _isSaving = false;
   String? _errorMessage;
+  String? _selectedGroupId; // Track selected group during form filling
 
   // Form controllers
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -57,7 +58,7 @@ class TestProvider with ChangeNotifier {
   bool get canGoNext => _validateCurrentStep();
   bool get canGoPrevious => _currentStep > 0;
   bool get isLastStep => _currentStep >= 2; // 0: Basic Info, 1: Questions, 2: Preview
-  String? get selectedGroupId => _currentTest?.groupId;
+  String? get selectedGroupId => _selectedGroupId ?? _currentTest?.groupId;
   Group? get selectedGroup => _availableGroups.isNotEmpty && selectedGroupId != null
       ? _availableGroups.firstWhere(
           (group) => group.id == selectedGroupId,
@@ -83,6 +84,7 @@ class TestProvider with ChangeNotifier {
   void startNewTest() {
     _currentTest = null;
     _questions.clear();
+    _selectedGroupId = null;
     _currentStep = 0;
     _clearForm();
     _clearError();
@@ -91,6 +93,7 @@ class TestProvider with ChangeNotifier {
 
   void loadTestForEditing(Test test) {
     _currentTest = test;
+    _selectedGroupId = test.groupId;
     _populateFormFromTest(test);
     _loadQuestionsForTest(test.id);
     _currentStep = 0;
@@ -302,6 +305,15 @@ class TestProvider with ChangeNotifier {
     }
   }
 
+  Future<Test?> getTestById(String testId) async {
+    try {
+      return await _testService.getTestById(testId);
+    } catch (e) {
+      _setError('Failed to load test: $e');
+      return null;
+    }
+  }
+
   Future<void> _loadQuestionsForTest(String testId) async {
     try {
       _questions = await _testService.getQuestions(testId);
@@ -311,15 +323,50 @@ class TestProvider with ChangeNotifier {
     }
   }
 
+  // Public method to get questions for any test
+  Future<List<Question>> getQuestions(String testId) async {
+    try {
+      return await _testService.getQuestions(testId);
+    } catch (e) {
+      throw Exception('Failed to load questions: $e');
+    }
+  }
+
   // Group selection
   void selectGroup(String groupId) {
     if (_availableGroups.any((group) => group.id == groupId)) {
-      _currentTest = _currentTest?.copyWith(groupId: groupId);
+      _selectedGroupId = groupId;
+      // Also update current test if it exists
+      if (_currentTest != null) {
+        _currentTest = _currentTest!.copyWith(groupId: groupId);
+      }
       notifyListeners();
     }
   }
 
-  // Test publishing
+  // Test publishing and draft management
+  Future<void> saveAsDraft() async {
+    if (_currentTest == null) {
+      _setError('No test to save as draft');
+      return;
+    }
+
+    try {
+      _setSaving(true);
+      _clearError();
+
+      // Update test status to draft
+      final draftTest = _currentTest!.copyWith(status: TestStatus.draft);
+      _currentTest = await _testService.updateTest(draftTest);
+      
+      notifyListeners();
+    } catch (e) {
+      _setError('Failed to save as draft: $e');
+    } finally {
+      _setSaving(false);
+    }
+  }
+
   Future<void> publishTest() async {
     if (_currentTest == null) {
       _setError('No test to publish');
@@ -335,14 +382,14 @@ class TestProvider with ChangeNotifier {
       _setSaving(true);
       _clearError();
 
-      // Test is considered published when its scheduled time arrives
-      // For now, we just validate that everything is ready
+      // Validate test before publishing
       if (!_currentTest!.isValid()) {
         throw Exception('Test validation failed: ${_currentTest!.getValidationErrors().join(', ')}');
       }
 
-      // Refresh test data to get latest state
-      await loadTeacherTests();
+      // Update test status to published
+      final publishedTest = _currentTest!.copyWith(status: TestStatus.published);
+      _currentTest = await _testService.updateTest(publishedTest);
       
       notifyListeners();
     } catch (e) {
@@ -402,6 +449,7 @@ class TestProvider with ChangeNotifier {
     timeLimitController.text = '60'; // Default 60 minutes
     dateController.clear();
     timeController.clear();
+    _selectedGroupId = null;
     _clearQuestionForm();
   }
 
