@@ -114,21 +114,21 @@
   - Write widget tests for preview functionality
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 7. Create multi-step test creation wizard
-  - Implement CreateTestScreen with PageView for step navigation
-  - Add progress indicator showing current step
-  - Create navigation controls (Next, Previous, Save Draft)
-  - Implement step validation before allowing navigation
-  - Add confirmation dialogs for destructive actions
+- [x] 7. Create multi-step test creation wizard
+  - Implemented CreateTestScreen with PageView for step navigation
+  - Added progress indicator showing current step
+  - Created navigation controls (Next, Previous, Save Draft)
+  - Implemented step validation before allowing navigation
+  - Added confirmation dialogs for destructive actions
   - Write widget tests for wizard navigation and validation
   - _Requirements: 1.1, 2.1, 3.1, 4.1_
 
-- [ ] 8. Integrate test editing functionality
-  - Add edit mode detection and state management in TestProvider
-  - Implement test loading and population of form fields for editing
-  - Create edit restrictions for published tests
-  - Add update functionality preserving creation date
-  - Implement edit confirmation and save changes
+- [x] 8. Integrate test editing functionality
+  - Added edit mode detection and state management in TestProvider
+  - Implemented test loading and population of form fields for editing
+  - Created edit restrictions for published tests
+  - Added update functionality preserving creation date
+  - Implemented edit confirmation and save changes
   - Write integration tests for edit workflow
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
 
