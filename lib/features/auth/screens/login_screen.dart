@@ -134,6 +134,9 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: _passwordController,
             obscureText: _obscureText,
             autovalidateMode: AutovalidateMode.onUserInteraction,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               labelText: 'Password',
               hintText: 'Enter your password',
@@ -142,7 +145,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+              fillColor: theme.brightness == Brightness.dark
+                  ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.3)
+                  : theme.colorScheme.surface.withOpacity(0.5),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureText ? Icons.visibility_off : Icons.visibility,

@@ -9,6 +9,7 @@ class StudentSettingsScreen extends StatelessWidget {
       children: [
         _buildSection(
           title: 'Appearance',
+          context: context,
           items: [
             _SettingsItem(
               icon: Icons.brightness_6,
@@ -22,6 +23,7 @@ class StudentSettingsScreen extends StatelessWidget {
         ),
         _buildSection(
           title: 'Notifications',
+          context: context,
           items: [
             _SettingsItem(
               icon: Icons.notifications,
@@ -43,6 +45,7 @@ class StudentSettingsScreen extends StatelessWidget {
         ),
         _buildSection(
           title: 'Security',
+          context: context,
           items: [
             _SettingsItem(
               icon: Icons.lock,
@@ -63,6 +66,7 @@ class StudentSettingsScreen extends StatelessWidget {
         ),
         _buildSection(
           title: 'About',
+          context: context,
           items: [
             _SettingsItem(
               icon: Icons.info,
@@ -85,6 +89,7 @@ class StudentSettingsScreen extends StatelessWidget {
   Widget _buildSection({
     required String title,
     required List<_SettingsItem> items,
+    required BuildContext context,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,10 +98,10 @@ class StudentSettingsScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.grey,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),

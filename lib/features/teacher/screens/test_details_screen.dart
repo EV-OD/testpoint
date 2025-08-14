@@ -162,7 +162,7 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
                   Text(
                     statusDescription,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                   ),
                 ],
@@ -309,7 +309,7 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
         ],
@@ -355,15 +355,22 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
     }
 
     if (_questions.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.quiz_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            Icon(
+              Icons.quiz_outlined, 
+              size: 64, 
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
             Text(
               'No questions found',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 18, 
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ],
         ),
@@ -423,7 +430,9 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: option.isCorrect ? Colors.green : Colors.grey.shade300,
+                    color: option.isCorrect 
+                        ? Colors.green 
+                        : Theme.of(context).colorScheme.outline,
                     width: option.isCorrect ? 2 : 1,
                   ),
                   borderRadius: BorderRadius.circular(8),
@@ -436,7 +445,9 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
                       height: 24,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: option.isCorrect ? Colors.green : Colors.grey.shade200,
+                        color: option.isCorrect 
+                            ? Colors.green 
+                            : Theme.of(context).colorScheme.surfaceContainerHighest,
                       ),
                       child: Center(
                         child: Text(
@@ -444,7 +455,9 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: option.isCorrect ? Colors.white : Colors.grey.shade600,
+                            color: option.isCorrect 
+                                ? Colors.white 
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -493,19 +506,28 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
                         ),
                   ),
                   const SizedBox(height: 16),
-                  const Center(
+                  Center(
                     child: Column(
                       children: [
-                        Icon(Icons.analytics_outlined, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
+                        Icon(
+                          Icons.analytics_outlined, 
+                          size: 64, 
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 16),
                         Text(
                           'Analytics Coming Soon',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 18, 
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           'Detailed analytics will be available once students start taking the test',
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -523,13 +545,17 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
+        Icon(
+          icon, 
+          size: 20, 
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 12),
         Text(
           '$label: ',
           style: TextStyle(
             fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         Expanded(

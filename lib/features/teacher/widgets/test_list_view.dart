@@ -32,9 +32,11 @@ class TestListView extends StatelessWidget {
             ),
             if (testStatus == TestStatus.draft) ...[
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Create your first test using the + button',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ],

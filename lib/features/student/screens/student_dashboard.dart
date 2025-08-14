@@ -92,22 +92,36 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectedTab == NavigationTab.dashboard
-            ? 'Student Dashboard'
-            : _selectedTab.name[0].toUpperCase() + _selectedTab.name.substring(1)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: authProvider.isLoginLoading
-                ? null
-                : () async {
-                    await authProvider.logout();
-                  },
-          ),
-        ],
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.school,
+                color: Theme.of(context).colorScheme.primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'TestPoint',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        elevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
       ),
       body: _buildScreen(),
       bottomNavigationBar: NavigationBar(

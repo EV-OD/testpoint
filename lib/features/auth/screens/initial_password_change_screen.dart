@@ -45,6 +45,9 @@ class _InitialPasswordChangeScreenState extends State<InitialPasswordChangeScree
               TextFormField(
                 controller: _currentPasswordController,
                 obscureText: _obscureCurrentPassword,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Current Password',
                   prefixIcon: const Icon(Icons.lock_outline),
@@ -69,6 +72,9 @@ class _InitialPasswordChangeScreenState extends State<InitialPasswordChangeScree
               TextFormField(
                 controller: _newPasswordController,
                 obscureText: _obscureNewPassword,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 decoration: InputDecoration(
                   labelText: 'New Password',
                   prefixIcon: const Icon(Icons.lock),
@@ -96,6 +102,9 @@ class _InitialPasswordChangeScreenState extends State<InitialPasswordChangeScree
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: _obscureConfirmPassword,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Confirm New Password',
                   prefixIcon: const Icon(Icons.lock),

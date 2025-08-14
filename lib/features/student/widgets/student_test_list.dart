@@ -50,9 +50,11 @@ class StudentTestList extends StatelessWidget {
             ),
             if (!isCompletedTab) ...[
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Your upcoming tests will appear here',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ],

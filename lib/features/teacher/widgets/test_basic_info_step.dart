@@ -74,6 +74,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
   Widget _buildTestNameField(TestProvider provider) {
     return TextFormField(
       controller: provider.nameController,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
       decoration: InputDecoration(
         labelText: 'Test Name *',
         hintText: 'Enter test name (e.g., Mathematics Mid-term)',
@@ -82,7 +85,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
           borderRadius: BorderRadius.circular(12),
         ),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3)
+            : Theme.of(context).colorScheme.surface.withOpacity(0.5),
       ),
       textCapitalization: TextCapitalization.words,
       validator: (value) {
@@ -112,6 +117,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
       decoration: InputDecoration(
         labelText: 'Select Group *',
         hintText: 'Choose the group for this test',
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         prefixIcon: const Icon(Icons.group),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -145,6 +153,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
   Widget _buildTimeLimitField(TestProvider provider) {
     return TextFormField(
       controller: provider.timeLimitController,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
       decoration: InputDecoration(
         labelText: 'Time Limit (minutes) *',
         hintText: 'Enter time limit (5-300 minutes)',
@@ -154,7 +165,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
           borderRadius: BorderRadius.circular(12),
         ),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3)
+            : Theme.of(context).colorScheme.surface.withOpacity(0.5),
       ),
       keyboardType: TextInputType.number,
       inputFormatters: [
@@ -183,6 +196,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
   Widget _buildDateField(TestProvider provider) {
     return TextFormField(
       controller: provider.dateController,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
       decoration: InputDecoration(
         labelText: 'Test Date *',
         hintText: 'DD/MM/YYYY',
@@ -191,7 +207,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
           borderRadius: BorderRadius.circular(12),
         ),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3)
+            : Theme.of(context).colorScheme.surface.withOpacity(0.5),
       ),
       readOnly: true,
       onTap: () => _selectDate(context, provider),
@@ -207,6 +225,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
   Widget _buildTimeField(TestProvider provider) {
     return TextFormField(
       controller: provider.timeController,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
       decoration: InputDecoration(
         labelText: 'Test Time *',
         hintText: 'HH:MM',
@@ -215,7 +236,9 @@ class _TestBasicInfoStepState extends State<TestBasicInfoStep> {
           borderRadius: BorderRadius.circular(12),
         ),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3)
+            : Theme.of(context).colorScheme.surface.withOpacity(0.5),
       ),
       readOnly: true,
       onTap: () => _selectTime(context, provider),

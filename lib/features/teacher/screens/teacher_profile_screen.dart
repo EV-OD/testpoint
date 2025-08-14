@@ -299,7 +299,7 @@ class TeacherProfileScreen extends StatelessWidget {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -411,7 +411,7 @@ class TeacherProfileScreen extends StatelessWidget {
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -479,7 +479,7 @@ class TeacherProfileScreen extends StatelessWidget {
                       Text(
                         'You\'ve joined the community of educators making learning more engaging.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[700],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -575,7 +575,7 @@ class TeacherProfileScreen extends StatelessWidget {
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -584,7 +584,7 @@ class TeacherProfileScreen extends StatelessWidget {
           Icon(
             Icons.arrow_forward_ios,
             size: 16,
-            color: Colors.grey[400],
+            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
           ),
         ],
       ),

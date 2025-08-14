@@ -106,7 +106,7 @@ class _TeacherSettingsScreenState extends State<TeacherSettingsScreen> {
                       Text(
                         user?.email ?? 'No email',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -553,7 +553,9 @@ class _TeacherSettingsScreenState extends State<TeacherSettingsScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(color: Colors.grey[600]),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
       trailing: Switch(
         value: value,
@@ -591,7 +593,9 @@ class _TeacherSettingsScreenState extends State<TeacherSettingsScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(color: Colors.grey[600]),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
       trailing: DropdownButton<String>(
         value: value,
@@ -639,12 +643,14 @@ class _TeacherSettingsScreenState extends State<TeacherSettingsScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(color: Colors.grey[600]),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,
         size: 16,
-        color: Colors.grey[400],
+        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
       ),
       onTap: onTap,
     );
@@ -677,7 +683,7 @@ class _TeacherSettingsScreenState extends State<TeacherSettingsScreen> {
       trailing: Text(
         value,
         style: TextStyle(
-          color: Colors.grey[600],
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -689,7 +695,7 @@ class _TeacherSettingsScreenState extends State<TeacherSettingsScreen> {
       height: 1,
       indent: 60,
       endIndent: 20,
-      color: Colors.grey[200],
+      color: Theme.of(context).colorScheme.outlineVariant,
     );
   }
 

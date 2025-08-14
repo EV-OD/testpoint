@@ -138,6 +138,9 @@ class _QuestionCreationStepState extends State<QuestionCreationStep> {
                 controller: provider.questionTextController,
                 maxLines: 3,
                 maxLength: 500,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'Question Text *',
                   hintText: 'Enter your question here...',
@@ -265,6 +268,9 @@ class _QuestionCreationStepState extends State<QuestionCreationStep> {
               child: TextFormField(
                 controller: provider.optionControllers[index],
                 maxLength: 100,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Option ${index + 1} *',
                   hintText: 'Enter answer option...',

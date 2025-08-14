@@ -133,6 +133,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Name Field
           TextFormField(
             controller: _nameController,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               labelText: 'Full Name',
               hintText: 'Enter your full name',
@@ -141,7 +144,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+              fillColor: theme.brightness == Brightness.dark
+                  ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.3)
+                  : theme.colorScheme.surface.withOpacity(0.5),
             ),
             textCapitalization: TextCapitalization.words,
             validator: (value) {
@@ -159,6 +164,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Email Field
           TextFormField(
             controller: _emailController,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               labelText: 'Email',
               hintText: 'Enter your email address',
@@ -167,7 +175,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+              fillColor: theme.brightness == Brightness.dark
+                  ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.3)
+                  : theme.colorScheme.surface.withOpacity(0.5),
             ),
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
@@ -186,6 +196,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscureText,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               labelText: 'Password',
               hintText: 'Enter your password',
@@ -194,7 +207,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+              fillColor: theme.brightness == Brightness.dark
+                  ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.3)
+                  : theme.colorScheme.surface.withOpacity(0.5),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureText ? Icons.visibility_off : Icons.visibility,
@@ -221,6 +236,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Role Selection
           DropdownButtonFormField<UserRole>(
             value: _selectedRole,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               labelText: 'Role',
               prefixIcon: const Icon(Icons.badge_outlined),
@@ -228,7 +246,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               filled: true,
-              fillColor: theme.colorScheme.surface.withOpacity(0.5),
+              fillColor: theme.brightness == Brightness.dark
+                  ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.3)
+                  : theme.colorScheme.surface.withOpacity(0.5),
             ),
             items: UserRole.values.map((role) {
               return DropdownMenuItem(

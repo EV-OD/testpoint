@@ -69,6 +69,21 @@ class AppTheme {
       colorScheme: _lightColorScheme,
       textTheme: GoogleFonts.latoTextTheme(),
       useMaterial3: true,
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: TextStyle(
+          color: _lightColorScheme.onSurface,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: _lightColorScheme.surface.withOpacity(0.5),
+        hintStyle: TextStyle(
+          color: _lightColorScheme.onSurfaceVariant,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
     );
   }
 
@@ -77,6 +92,21 @@ class AppTheme {
       colorScheme: _darkColorScheme,
       textTheme: GoogleFonts.latoTextTheme(),
       useMaterial3: true,
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: TextStyle(
+          color: _darkColorScheme.onSurface,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: _darkColorScheme.surfaceContainerHighest.withOpacity(0.3),
+        hintStyle: TextStyle(
+          color: _darkColorScheme.onSurfaceVariant,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
     );
   }
 }

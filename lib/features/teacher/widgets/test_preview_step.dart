@@ -47,39 +47,42 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
         final questions = provider.questions;
 
         if (currentTest == null) {
-          return const Center(
+          return Center(
             child: Text(
               'No test data available',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 16, 
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           );
         }
 
         if (questions.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.quiz_outlined,
                   size: 64,
-                  color: Colors.grey,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
                   'No questions added yet',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   'Add questions in the previous step to preview your test',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -175,13 +178,17 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
+        Icon(
+          icon, 
+          size: 20, 
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w500,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         Expanded(
@@ -206,7 +213,7 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
             const Expanded(
               child: Text(
                 'Preview shows questions in randomized order as students will see them',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(fontSize: 14),
               ),
             ),
             TextButton.icon(
@@ -318,7 +325,7 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
                 border: Border.all(
                   color: option.isCorrect 
                     ? Colors.green 
-                    : Colors.grey.shade300,
+                    : Theme.of(context).colorScheme.outline,
                   width: option.isCorrect ? 2 : 1,
                 ),
                 borderRadius: BorderRadius.circular(8),
@@ -336,7 +343,7 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
                       border: Border.all(
                         color: option.isCorrect 
                           ? Colors.green 
-                          : Colors.grey.shade400,
+                          : Theme.of(context).colorScheme.outline,
                       ),
                       color: option.isCorrect 
                         ? Colors.green 
@@ -350,7 +357,7 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
                           fontSize: 12,
                           color: option.isCorrect 
                             ? Colors.white 
-                            : Colors.grey.shade600,
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
