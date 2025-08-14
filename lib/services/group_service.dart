@@ -105,15 +105,26 @@ class GroupService {
   /// Get groups that a specific user belongs to
   Future<List<Group>> getUserGroups(String userId) async {
     try {
+      print('DEBUG: Getting groups for user: $userId');
+      
       final querySnapshot = await _groupsCollection
           .where('userIds', arrayContains: userId)
           .get();
 
-      return querySnapshot.docs
+      print('DEBUG: Found ${querySnapshot.docs.length} groups for user');
+      
+      final groups = querySnapshot.docs
           .map((doc) => Group.fromMap(doc.id, doc.data() as Map<String, dynamic>))
           .toList()
           ..sort((a, b) => a.name.compareTo(b.name)); // Client-side sorting
+
+      for (var group in groups) {
+        print('DEBUG: Group - ${group.name} (${group.id}) - Users: ${group.userIds}');
+      }
+
+      return groups;
     } catch (e) {
+      print('DEBUG: Error getting user groups: $e');
       throw Exception('Failed to get user groups: $e');
     }
   }

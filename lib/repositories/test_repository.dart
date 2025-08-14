@@ -98,10 +98,14 @@ class TestRepository {
 
   Future<List<Test>> getTestsByGroup(String groupId) async {
     try {
+      print('DEBUG: Getting tests for group: $groupId');
+      
       final querySnapshot = await _testsCollection
           .where('group_id', isEqualTo: groupId)
           .orderBy('date_time', descending: false)
           .get();
+
+      print('DEBUG: Found ${querySnapshot.docs.length} tests for group $groupId');
 
       final tests = <Test>[];
       
@@ -115,12 +119,18 @@ class TestRepository {
       
       // Process each test and add the group information
       for (final doc in querySnapshot.docs) {
-        final test = Test.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+        final data = doc.data() as Map<String, dynamic>;
+        print('DEBUG: Test doc ${doc.id}: $data');
+        
+        final test = Test.fromMap(doc.id, data);
+        print('DEBUG: Parsed test: ${test.name} - Status: ${test.status} - Published: ${test.isPublished}');
+        
         tests.add(test.copyWith(group: group));
       }
       
       return tests;
     } catch (e) {
+      print('DEBUG: Error getting tests by group: $e');
       throw Exception('Failed to get tests by group: $e');
     }
   }

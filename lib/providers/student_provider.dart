@@ -36,11 +36,18 @@ class StudentProvider extends ChangeNotifier {
   // Get pending tests (available and not yet taken)
   List<Test> get pendingTests {
     final now = DateTime.now();
-    return _availableTests.where((test) {
-      return test.isPublished && 
-             test.dateTime.isBefore(now) && 
-             !test.isExpired;
+    print('DEBUG: Current time: $now');
+    
+    final filtered = _availableTests.where((test) {
+      print('DEBUG: Test ${test.name} - DateTime: ${test.dateTime} - Published: ${test.isPublished} - Expired: ${test.isExpired}');
+      
+      // Show published tests that are not expired
+      // This includes both current tests and future scheduled tests
+      return test.isPublished && !test.isExpired;
     }).toList();
+    
+    print('DEBUG: Filtered pending tests: ${filtered.length}');
+    return filtered;
   }
 
   // Private methods
@@ -73,11 +80,17 @@ class StudentProvider extends ChangeNotifier {
         throw Exception('User must be authenticated');
       }
 
+      print('DEBUG: Loading tests for user: ${currentUser.uid}');
+
       // Get user's groups
       final userGroups = await _groupService.getUserGroups(currentUser.uid);
       final groupIds = userGroups.map((g) => g.id).toList();
 
+      print('DEBUG: User groups: $groupIds');
+      print('DEBUG: Group names: ${userGroups.map((g) => g.name).toList()}');
+
       if (groupIds.isEmpty) {
+        print('DEBUG: No groups found for user');
         _availableTests = [];
         _completedTests = [];
         _hasInitiallyLoaded = true;
@@ -88,6 +101,12 @@ class StudentProvider extends ChangeNotifier {
       // Get tests for user's groups
       final allTests = await _testService.getTestsByGroups(groupIds);
       
+      print('DEBUG: Found ${allTests.length} total tests');
+      print('DEBUG: Test details:');
+      for (var test in allTests) {
+        print('  - ${test.name} (${test.id}) - Group: ${test.groupId} - Published: ${test.isPublished} - Status: ${test.status}');
+      }
+      
       // Separate available and completed tests
       _availableTests = allTests.where((test) => 
         test.isPublished && !_isTestCompletedByStudent(test, currentUser.uid)
@@ -97,9 +116,13 @@ class StudentProvider extends ChangeNotifier {
         _isTestCompletedByStudent(test, currentUser.uid)
       ).toList();
 
+      print('DEBUG: Available tests: ${_availableTests.length}');
+      print('DEBUG: Completed tests: ${_completedTests.length}');
+
       _hasInitiallyLoaded = true;
       notifyListeners();
     } catch (e) {
+      print('DEBUG: Error loading tests: $e');
       _setError('Failed to load tests: $e');
       _hasInitiallyLoaded = true;
     } finally {
@@ -117,8 +140,14 @@ class StudentProvider extends ChangeNotifier {
   // Check if test is available to take
   bool isTestAvailable(Test test) {
     final now = DateTime.now();
+    
+    // Test is available if:
+    // 1. It's published
+    // 2. The scheduled time has passed (or is very close)
+    // 3. It's not expired
+    // 4. Student hasn't completed it
     return test.isPublished && 
-           test.dateTime.isBefore(now) && 
+           test.dateTime.isBefore(now.add(Duration(minutes: 5))) && // Allow 5 minutes early access
            !test.isExpired &&
            !_isTestCompletedByStudent(test, _auth.currentUser?.uid ?? '');
   }
