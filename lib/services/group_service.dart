@@ -36,7 +36,6 @@ class GroupService {
         // Students can only see groups they belong to
         querySnapshot = await _groupsCollection
             .where('userIds', arrayContains: userId)
-            .orderBy('name')
             .get();
       } else {
         // Teachers and admins can see all groups
@@ -47,7 +46,8 @@ class GroupService {
 
       return querySnapshot.docs
           .map((doc) => Group.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-          .toList();
+          .toList()
+          ..sort((a, b) => a.name.compareTo(b.name)); // Client-side sorting
     } catch (e) {
       throw Exception('Failed to get available groups: $e');
     }
@@ -107,12 +107,12 @@ class GroupService {
     try {
       final querySnapshot = await _groupsCollection
           .where('userIds', arrayContains: userId)
-          .orderBy('name')
           .get();
 
       return querySnapshot.docs
           .map((doc) => Group.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-          .toList();
+          .toList()
+          ..sort((a, b) => a.name.compareTo(b.name)); // Client-side sorting
     } catch (e) {
       throw Exception('Failed to get user groups: $e');
     }

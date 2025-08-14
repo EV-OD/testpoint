@@ -7,8 +7,13 @@ import 'package:testpoint/features/auth/screens/splash_screen.dart';
 import 'package:testpoint/features/student/screens/student_dashboard.dart';
 import 'package:testpoint/features/teacher/screens/teacher_dashboard.dart';
 import 'package:testpoint/features/auth/screens/initial_password_change_screen.dart';
+import 'package:testpoint/features/student/screens/test_instructions_screen.dart';
+import 'package:testpoint/features/student/screens/test_taking_screen.dart';
+import 'package:testpoint/features/student/screens/test_results_screen.dart';
 import 'package:testpoint/providers/auth_provider.dart';
 import 'package:testpoint/models/user_model.dart';
+import 'package:testpoint/models/test_model.dart';
+import 'package:testpoint/models/question_model.dart';
 
 final GoRouter Function(AuthProvider) router = (authProvider) => GoRouter(
   initialLocation: AppRoutes.splash,
@@ -33,6 +38,32 @@ final GoRouter Function(AuthProvider) router = (authProvider) => GoRouter(
     GoRoute(
       path: AppRoutes.teacherDashboard,
       builder: (context, state) => const TeacherDashboard(),
+    ),
+    GoRoute(
+      path: AppRoutes.testInstructions,
+      builder: (context, state) {
+        final test = state.extra as Test;
+        return TestInstructionsScreen(test: test);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.testTaking,
+      builder: (context, state) {
+        final test = state.extra as Test;
+        return TestTakingScreen(test: test);
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.testResults,
+      builder: (context, state) {
+        final data = state.extra as Map<String, dynamic>;
+        return TestResultsScreen(
+          test: data['test'] as Test,
+          questions: data['questions'] as List<Question>,
+          answers: data['answers'] as Map<int, int>,
+          score: data['score'] as int,
+        );
+      },
     ),
   ],
   redirect: (context, state) {

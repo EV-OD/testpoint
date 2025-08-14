@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:testpoint/providers/auth_provider.dart';
+import 'package:testpoint/providers/student_provider.dart';
 import 'package:testpoint/features/student/widgets/student_test_list.dart';
 import 'package:testpoint/features/student/screens/student_profile.dart';
 import 'package:testpoint/features/student/screens/student_settings.dart';
@@ -17,6 +18,15 @@ class StudentDashboard extends StatefulWidget {
 
 class _StudentDashboardState extends State<StudentDashboard> {
   NavigationTab _selectedTab = NavigationTab.dashboard;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize student provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<StudentProvider>(context, listen: false).loadStudentTests();
+    });
+  }
 
   Widget _buildScreen() {
     switch (_selectedTab) {
@@ -34,51 +44,37 @@ class _StudentDashboardState extends State<StudentDashboard> {
       length: 2,
       child: Column(
         children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Pending Tests'),
-              Tab(text: 'Completed Tests'),
-            ],
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              indicator: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: Colors.white,
+              unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(text: 'Pending Tests'),
+                Tab(text: 'Completed Tests'),
+              ],
+            ),
           ),
           Expanded(
             child: TabBarView(
-              children: [
-                _buildTestList(isCompleted: false),
-                _buildTestList(isCompleted: true),
+              children: const [
+                StudentTestList(isCompletedTab: false),
+                StudentTestList(isCompletedTab: true),
               ],
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTestList({required bool isCompleted}) {
-    // TODO: Replace with actual data from backend
-    final dummyTests = [
-      StudentTest(
-        id: '1',
-        name: 'Mathematics Mid-term',
-        subject: 'Mathematics',
-        scheduledDate: DateTime.now().add(const Duration(days: 1)),
-        duration: 60,
-        isCompleted: isCompleted,
-        score: isCompleted ? 85 : null,
-      ),
-      StudentTest(
-        id: '2',
-        name: 'Science Quiz',
-        subject: 'Science',
-        scheduledDate: DateTime.now().add(const Duration(days: 3)),
-        duration: 45,
-        isCompleted: isCompleted,
-        score: isCompleted ? 92 : null,
-      ),
-    ];
-
-    return StudentTestList(
-      tests: dummyTests.where((test) => test.isCompleted == isCompleted).toList(),
-      isCompletedTab: isCompleted,
     );
   }
 

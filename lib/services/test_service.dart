@@ -134,6 +134,26 @@ class TestService {
     }
   }
 
+  Future<List<Test>> getTestsByGroups(List<String> groupIds) async {
+    try {
+      final List<Test> allTests = [];
+      for (String groupId in groupIds) {
+        final groupTests = await _testRepository.getTestsByGroup(groupId);
+        allTests.addAll(groupTests);
+      }
+      
+      // Remove duplicates based on test ID
+      final Map<String, Test> uniqueTests = {};
+      for (Test test in allTests) {
+        uniqueTests[test.id] = test;
+      }
+      
+      return uniqueTests.values.toList();
+    } catch (e) {
+      throw Exception('Failed to get tests by groups: $e');
+    }
+  }
+
   Future<Test?> getTestById(String testId) async {
     try {
       return await _testRepository.getTest(testId);
