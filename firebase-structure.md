@@ -1,48 +1,51 @@
 # Firebase Firestore Data Structure
 
-This document outlines the data structure used in Firestore for the TestPoint application. This guide is intended to help backend and mobile (Android) developers understand how data is stored and managed.
+This document outlines the current data structure used in Firestore for the TestPoint application. This guide reflects the implemented system and is intended to help developers understand how data is stored and managed.
 
 ## Root Collections
 
-The database consists of three primary root collections:
+The database consists of four primary root collections:
 
-1.  `users`
-2.  `groups`
-3.  `tests`
+1. `users` - User profiles and authentication data
+2. `groups` - Class/group management 
+3. `tests` - Test definitions with questions subcollection
+4. `test_sessions` - Individual student test-taking sessions
 
 ---
 
 ## 1. `users` Collection
 
-This collection stores information about individual users. The document ID for each user is their Firebase Authentication UID.
+This collection stores user profile information. The document ID for each user is their Firebase Authentication UID.
 
 ### Document Structure: `users/{userId}`
 
 ```json
 {
   "name": "String",
-  "email": "String",
+  "email": "String", 
   "role": "String"
 }
 ```
 
 ### Field Descriptions:
 
--   **`name`**: (String) The full name of the user (e.g., "John Doe").
--   **`email`**: (String) The user's email address. This is unique for each user.
--   **`role`**: (String) Defines the user's permissions and role in the system. Can be one of the following values:
-    -   `"admin"`: Has full access to the admin dashboard.
-    -   `"teacher"`: Can create and manage groups and tests.
-    -   `"student"`: Can take tests they are assigned to.
+- **`name`**: (String) The full name of the user (e.g., "John Doe").
+- **`email`**: (String) The user's email address. Unique identifier from Firebase Auth.
+- **`role`**: (String) User permission level. Possible values:
+  - `"admin"`: Full system access and management capabilities
+  - `"teacher"`: Can create groups, tests, and view student results
+  - `"student"`: Can take assigned tests and view results
 
-**Note on Firebase Authentication:**
-User identity (UID, email, display name) is managed by Firebase Authentication. The `users` collection in Firestore stores additional app-specific metadata like the `role`.
+### Implementation Status: ✅ COMPLETED
+- User authentication via Firebase Auth
+- Role-based access control implemented
+- User profile management in place
 
 ---
 
 ## 2. `groups` Collection
 
-This collection stores groups of users, typically created by teachers or admins to assign tests to a specific set of students.
+This collection stores class/group information for organizing students and assigning tests.
 
 ### Document Structure: `groups/{groupId}`
 
@@ -56,22 +59,31 @@ This collection stores groups of users, typically created by teachers or admins 
 
 ### Field Descriptions:
 
--   **`name`**: (String) The name of the group (e.g., "Grade 10 Math Class").
--   **`userIds`**: (Array of Strings) A list of Firebase Authentication UIDs of the users who are members of this group.
--   **`created_at`**: (Timestamp) The date and time the group was created.
+- **`name`**: (String) The name of the group (e.g., "Grade 10 Math Class", "Advanced Physics").
+- **`userIds`**: (Array of Strings) List of Firebase Authentication UIDs of group members.
+- **`created_at`**: (Timestamp) When the group was created.
+
+### Implementation Status: ✅ COMPLETED
+- Group creation and management
+- Student assignment to groups
+- Group-based test filtering
+- Real-time group updates
+
+### Required Firebase Indexes:
+- Composite index for: `userIds (array-contains)` + `name (ascending)` + `__name__ (ascending)`
 
 ---
 
 ## 3. `tests` Collection
 
-This collection stores all the tests created by teachers or admins.
+This collection stores test definitions created by teachers.
 
 ### Document Structure: `tests/{testId}`
 
 ```json
 {
   "name": "String",
-  "group_id": "String",
+  "group_id": "String", 
   "time_limit": "Number",
   "question_count": "Number",
   "date_time": "Timestamp",
@@ -83,44 +95,34 @@ This collection stores all the tests created by teachers or admins.
 
 ### Field Descriptions:
 
--   **`name`**: (String) The name of the test (e.g., "Final Exam - Algebra II").
--   **`group_id`**: (String) The ID of the group from the `groups` collection that this test is assigned to.
--   **`time_limit`**: (Number) The duration of the test in minutes.
--   **`question_count`**: (Number) The total number of questions in the test. This is updated via server-side logic when questions are added or removed.
--   **`date_time`**: (Timestamp) The scheduled start date and time for the test.
--   **`test_maker`**: (String) The Firebase Authentication UID of the teacher who created this test.
--   **`created_at`**: (Timestamp) The date and time the test was created.
--   **`status`**: (String) The current status of the test. Can be one of the following values:
-    -   `"draft"`: Test is being created/edited and not yet available to students.
-    -   `"published"`: Test is published and available to students at the scheduled time.
-    -   `"completed"`: Test has finished and is no longer available for taking.
+- **`name`**: (String) Test title (e.g., "Final Exam - Algebra II").
+- **`group_id`**: (String) Reference to `groups` collection document ID.
+- **`time_limit`**: (Number) Test duration in minutes (5-300 range).
+- **`question_count`**: (Number) Total questions in test (auto-calculated).
+- **`date_time`**: (Timestamp) Scheduled test start date and time.
+- **`test_maker`**: (String) Firebase UID of the teacher who created the test.
+- **`created_at`**: (Timestamp) Test creation timestamp.
+- **`status`**: (String) Test lifecycle status:
+  - `"draft"`: Being created/edited, not visible to students
+  - `"published"`: Available to students at scheduled time
+  - `"completed"`: Past end time, results available
 
-### Test Status Workflow
+### Test Lifecycle: ✅ IMPLEMENTED
+1. **Draft**: Teacher creates and edits test freely
+2. **Published**: Test becomes available to assigned students
+3. **Completed**: Automatic transition after time limit expires
 
-Tests follow a specific lifecycle managed by the `status` field:
-
-1. **Draft Phase** (`status: "draft"`)
-   - Test is being created or edited by the teacher
-   - Not visible to students
-   - Can be modified, deleted, or published
-   - Must have at least one question to be published
-
-2. **Published Phase** (`status: "published"`)
-   - Test is available to students at the scheduled `date_time`
-   - Cannot be deleted
-   - Can be restored to draft status if the test hasn't started yet
-   - Automatically becomes available when `date_time` is reached
-
-3. **Completed Phase** (`status: "completed"`)
-   - Test has finished (past `date_time` + `time_limit`)
-   - Read-only for viewing results and analytics
-   - Cannot be modified or deleted
+### Implementation Status: ✅ COMPLETED
+- Multi-step test creation wizard
+- Test editing and publishing
+- Real-time test management
+- Group-based test assignment
 
 ### Subcollections
 
-#### `questions` Subcollection
+#### `questions` Subcollection: ✅ IMPLEMENTED
 
-Each document in the `tests` collection has a subcollection named `questions`.
+Each test document contains a `questions` subcollection with MCQ data.
 
 ##### Document Structure: `tests/{testId}/questions/{questionId}`
 
@@ -129,7 +131,7 @@ Each document in the `tests` collection has a subcollection named `questions`.
   "text": "String",
   "options": [
     {
-      "id": "String",
+      "id": "String", 
       "text": "String",
       "isCorrect": "Boolean"
     }
@@ -140,32 +142,38 @@ Each document in the `tests` collection has a subcollection named `questions`.
 
 ##### Field Descriptions:
 
--   **`text`**: (String) The question text itself.
--   **`options`**: (Array of Objects) A list of possible answers for the question.
-    -   **`id`**: (String) A unique identifier for the option.
-    -   **`text`**: (String) The text for the answer option.
-    -   **`isCorrect`**: (Boolean) `true` if this is the correct answer, otherwise `false`. Only one option should be correct.
--   **`created_at`**: (Timestamp) The date and time the question was created.
+- **`text`**: (String) Question text (10-500 characters).
+- **`options`**: (Array of Objects) Four answer choices:
+  - **`id`**: (String) Unique option identifier
+  - **`text`**: (String) Answer option text
+  - **`isCorrect`**: (Boolean) True for correct answer (exactly one per question)
+- **`created_at`**: (Timestamp) Question creation time
+
+##### Implementation Features:
+- Question creation and editing interface
+- Validation for unique options and single correct answer
+- Real-time question management
+- Question preview with answer highlighting
 
 ---
 
 ## 4. `test_sessions` Collection
 
-This collection stores individual test-taking sessions when students take tests.
+This collection tracks individual student test-taking sessions with comprehensive monitoring.
 
 ### Document Structure: `test_sessions/{sessionId}`
 
 ```json
 {
   "test_id": "String",
-  "student_id": "String",
+  "student_id": "String", 
   "start_time": "Timestamp",
   "end_time": "Timestamp",
   "time_limit": "Number",
   "answers": {
     "questionId1": {
       "selected_answer_index": "Number",
-      "answered_at": "Timestamp",
+      "answered_at": "Timestamp", 
       "is_correct": "Boolean"
     }
   },
@@ -174,7 +182,7 @@ This collection stores individual test-taking sessions when students take tests.
   "violations": [
     {
       "id": "String",
-      "timestamp": "Timestamp",
+      "timestamp": "Timestamp", 
       "type": "String",
       "description": "String",
       "metadata": "Object"
@@ -187,65 +195,166 @@ This collection stores individual test-taking sessions when students take tests.
 
 ### Field Descriptions:
 
--   **`test_id`**: (String) Reference to the test document ID from the `tests` collection.
--   **`student_id`**: (String) Firebase Authentication UID of the student taking the test.
--   **`start_time`**: (Timestamp) When the student started the test.
--   **`end_time`**: (Timestamp) When the student completed/submitted the test.
--   **`time_limit`**: (Number) Duration of the test in minutes (copied from test for consistency).
--   **`answers`**: (Object) Map of question IDs to student answers.
--   **`question_order`**: (Array of Strings) Randomized order of question IDs for this session.
--   **`status`**: (String) Current status of the test session: `"in_progress"`, `"completed"`, `"submitted"`, `"violation_submitted"`.
--   **`violations`**: (Array of Objects) List of anti-cheating violations detected during the session.
--   **`final_score`**: (Number) Calculated score as a percentage (0-100).
--   **`created_at`**: (Timestamp) When the test session was created.
+- **`test_id`**: (String) Reference to parent test document
+- **`student_id`**: (String) Firebase UID of test taker
+- **`start_time`**: (Timestamp) Test session start time
+- **`end_time`**: (Timestamp) Test completion/submission time
+- **`time_limit`**: (Number) Session time limit in minutes
+- **`answers`**: (Object) Student responses mapped by question ID
+- **`question_order`**: (Array) Randomized question sequence for this session
+- **`status`**: (String) Session state:
+  - `"not_started"`: Session created but not begun
+  - `"in_progress"`: Student actively taking test
+  - `"completed"`: Test finished normally
+  - `"submitted"`: Manual submission by student
+  - `"violation_submitted"`: Auto-submitted due to violations
+- **`violations`**: (Array) Anti-cheat violations detected
+- **`final_score`**: (Number) Calculated score percentage (0-100)
+- **`created_at`**: (Timestamp) Session creation time
+
+### Implementation Status: 🚧 PARTIAL
+- ✅ Basic models and structure defined
+- ✅ Test-taking interface with timer
+- ✅ Answer collection and scoring
+- ✅ Basic anti-cheat monitoring (app switches)
+- ⏳ Firebase persistence layer
+- ⏳ Session recovery and offline support
+- ⏳ Comprehensive violation tracking
 
 ---
 
-## Teacher Dashboard Features
+## Implementation Overview
 
-The teacher dashboard provides comprehensive test management capabilities organized by test status:
+### ✅ Completed Features
 
-### Dashboard Tabs
+#### Teacher Dashboard & Test Management
+- Multi-step test creation wizard with validation
+- Test editing and publishing workflow  
+- Real-time test list with status filtering
+- Question management with preview
+- Group-based test assignment
+- Beautiful Material 3 UI with dark mode
 
-1. **Drafts Tab**
-   - Shows all tests with `status: "draft"`
-   - Actions available: Edit, Publish (if questions exist), Delete
-   - Tests can be freely modified and deleted
+#### Student Test-Taking System
+- Test instructions and readiness confirmation
+- Single-question interface with navigation
+- Timer with visual warnings
+- Answer selection and progress tracking
+- Automatic scoring and results display
+- Basic anti-cheat monitoring (app switches)
 
-2. **Published Tab**
-   - Shows all tests with `status: "published"`
-   - Actions available: View Details, Restore to Draft (if not started)
-   - Tests become read-only once students can access them
+#### Firebase Integration
+- User authentication and role management
+- Real-time data synchronization
+- Group management with user assignment
+- Test and question CRUD operations
+- Proper security rules implementation
 
-3. **Completed Tab**
-   - Shows all tests with `status: "completed"`
-   - Actions available: View Results, Analytics
-   - All tests are read-only for historical reference
+### 🚧 In Progress
 
-### Real-time Updates
+#### Test Session Persistence
+- Basic models implemented
+- Firebase repository layer needed
+- Real-time answer saving
+- Session recovery after app crashes
 
-The dashboard uses Firebase real-time listeners to automatically update when:
-- New tests are created
-- Test status changes
-- Tests are deleted or modified
-- Questions are added/removed
+#### Enhanced Anti-Cheat System
+- App lifecycle monitoring implemented
+- Platform-specific features (screen pinning) needed
+- Advanced violation detection
+- Violation reporting for teachers
 
-### Firebase Indexes
+### ⏳ Planned Features
 
-The following single-field indexes are automatically created by Firebase:
-- `tests.test_maker` (for filtering by teacher)
-- `tests.group_id` (for filtering by group)
-- `tests.status` (for filtering by status)
-- `tests.created_at` (for sorting)
-- `tests.date_time` (for sorting)
+#### Advanced Timer System
+- Background timer persistence
+- Server-side time validation
+- Automatic submission on timeout
+- Time synchronization
 
-**Note**: Composite indexes are avoided by sorting results in memory rather than in the database query to prevent index requirements that would need manual creation in the Firebase Console.
+#### Comprehensive Analytics
+- Student performance tracking
+- Test difficulty analysis
+- Detailed violation reporting
+- Export functionality
 
-### Test Management Actions
+---
 
-- **Create Test**: Starts a new test in draft status
-- **Edit Test**: Modify test details and questions (only available for drafts)
-- **Publish Test**: Change status from draft to published (requires at least one question)
-- **Delete Test**: Remove test completely (only available for drafts)
-- **Restore to Draft**: Change published test back to draft status (only if test hasn't started)
-- **View Details**: See test information and student results
+## Firebase Security Rules
+
+### Current Implementation Status: ✅ BASIC RULES
+
+```javascript
+// Basic security rules implemented
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Teachers can manage tests they created
+    match /tests/{testId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || resource.data.test_maker == request.auth.uid);
+    }
+    
+    // Questions are managed by test creators
+    match /tests/{testId}/questions/{questionId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/tests/$(testId)).data.test_maker == request.auth.uid;
+    }
+    
+    // Groups are readable by all authenticated users
+    match /groups/{groupId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null; // TODO: Restrict to admins/teachers
+    }
+    
+    // Test sessions managed by students
+    match /test_sessions/{sessionId} {
+      allow read, write: if request.auth != null && 
+        resource.data.student_id == request.auth.uid;
+    }
+  }
+}
+```
+
+---
+
+## Required Firebase Indexes
+
+### Composite Indexes Created:
+1. **groups collection**: 
+   - Fields: `userIds` (array-contains), `name` (ascending)
+   - Purpose: Student group membership queries
+
+### Single Field Indexes (Auto-created):
+- `tests.test_maker` - Filter tests by creator
+- `tests.group_id` - Filter tests by group
+- `tests.status` - Filter by test status
+- `tests.date_time` - Sort by scheduled time
+- `groups.userIds` - Group membership queries
+
+---
+
+## Development Status Summary
+
+| Feature | Status | Implementation |
+|---------|--------|----------------|
+| User Authentication | ✅ Complete | Firebase Auth + role-based access |
+| Group Management | ✅ Complete | CRUD with real-time updates |
+| Test Creation | ✅ Complete | Multi-step wizard with validation |
+| Question Management | ✅ Complete | MCQ with preview and editing |
+| Test Taking Interface | ✅ Complete | Student-facing test experience |
+| Results & Scoring | ✅ Complete | Automatic calculation and display |
+| Basic Anti-Cheat | ✅ Complete | App switch detection |
+| Test Session Persistence | 🚧 Partial | Models ready, Firebase integration needed |
+| Advanced Anti-Cheat | 🚧 Partial | Platform-specific features pending |
+| Analytics Dashboard | ⏳ Planned | Teacher insights and reporting |
+| Offline Support | ⏳ Planned | Answer caching and sync |
+
+The current implementation provides a complete end-to-end test creation and taking experience with real-time Firebase integration. The foundation is solid for adding advanced features like comprehensive anti-cheat systems, detailed analytics, and offline support.
