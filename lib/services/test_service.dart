@@ -240,8 +240,12 @@ class TestService {
 
   Future<List<Question>> getQuestions(String testId) async {
     try {
-      return await _testRepository.getQuestions(testId);
+      print('DEBUG: TestService.getQuestions called for testId: $testId');
+      final questions = await _testRepository.getQuestions(testId);
+      print('DEBUG: TestService.getQuestions fetched ${questions.length} questions.');
+      return questions;
     } catch (e) {
+      print('DEBUG: Error in TestService.getQuestions: $e');
       throw Exception('Failed to get questions: $e');
     }
   }
@@ -392,6 +396,18 @@ class TestService {
       await _testRepository.submitTestSession(session);
     } catch (e) {
       throw Exception('Failed to submit test session: $e');
+    }
+  }
+
+  Future<List<TestSession>> getTestSubmissions(String testId) async {
+    try {
+      print('DEBUG: TestService.getTestSubmissions called for testId: $testId');
+      final submissions = await _testRepository.getTestSubmissions(testId);
+      print('DEBUG: TestService.getTestSubmissions fetched ${submissions.length} submissions.');
+      return submissions;
+    } catch (e) {
+      print('DEBUG: Error in TestService.getTestSubmissions: $e');
+      throw Exception('Failed to get test submissions: $e');
     }
   }
 }

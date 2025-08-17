@@ -208,16 +208,20 @@ class TestRepository {
 
   Future<List<Question>> getQuestions(String testId) async {
     try {
+      print('DEBUG: TestRepository.getQuestions called for testId: $testId');
       final querySnapshot = await _testsCollection
           .doc(testId)
           .collection('questions')
           .orderBy('created_at')
           .get();
 
-      return querySnapshot.docs
+      final questions = querySnapshot.docs
           .map((doc) => Question.fromMap(doc.id, doc.data()))
           .toList();
+      print('DEBUG: TestRepository.getQuestions fetched ${questions.length} questions.');
+      return questions;
     } catch (e) {
+      print('DEBUG: Error in TestRepository.getQuestions: $e');
       throw Exception('Failed to get questions: $e');
     }
   }
@@ -398,6 +402,24 @@ class TestRepository {
       await _testSessionsCollection.doc(session.id).set(session.toMap());
     } catch (e) {
       throw Exception('Failed to submit test session: $e');
+    }
+  }
+
+  Future<List<TestSession>> getTestSubmissions(String testId) async {
+    try {
+      print('DEBUG: TestRepository.getTestSubmissions called for testId: $testId');
+      final querySnapshot = await _testSessionsCollection
+          .where('test_id', isEqualTo: testId)
+          .get();
+
+      final submissions = querySnapshot.docs
+          .map((doc) => TestSession.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+          .toList();
+      print('DEBUG: TestRepository.getTestSubmissions fetched ${submissions.length} submissions.');
+      return submissions;
+    } catch (e) {
+      print('DEBUG: Error in TestRepository.getTestSubmissions: $e');
+      throw Exception('Failed to get test submissions: $e');
     }
   }
 }

@@ -6,6 +6,7 @@ import 'package:testpoint/config/app_routes.dart';
 
 import 'package:provider/provider.dart';
 import 'package:testpoint/providers/student_provider.dart';
+import 'package:testpoint/providers/test_provider.dart';
 
 class TestTakingScreen extends StatefulWidget {
   final Test test;
@@ -26,42 +27,9 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
   late DateTime _startTime;
   late Duration _remainingTime;
   
-  // Dummy questions for demonstration
-  final List<Question> _questions = [
-    Question(
-      id: '1',
-      text: 'What is the capital of France?',
-      options: [
-        QuestionOption(id: '1a', text: 'London', isCorrect: false),
-        QuestionOption(id: '1b', text: 'Berlin', isCorrect: false),
-        QuestionOption(id: '1c', text: 'Paris', isCorrect: true),
-        QuestionOption(id: '1d', text: 'Madrid', isCorrect: false),
-      ],
-      createdAt: DateTime.now(),
-    ),
-    Question(
-      id: '2',
-      text: 'Which planet is known as the Red Planet?',
-      options: [
-        QuestionOption(id: '2a', text: 'Venus', isCorrect: false),
-        QuestionOption(id: '2b', text: 'Mars', isCorrect: true),
-        QuestionOption(id: '2c', text: 'Jupiter', isCorrect: false),
-        QuestionOption(id: '2d', text: 'Saturn', isCorrect: false),
-      ],
-      createdAt: DateTime.now(),
-    ),
-    Question(
-      id: '3',
-      text: 'What is 2 + 2?',
-      options: [
-        QuestionOption(id: '3a', text: '3', isCorrect: false),
-        QuestionOption(id: '3b', text: '4', isCorrect: true),
-        QuestionOption(id: '3c', text: '5', isCorrect: false),
-        QuestionOption(id: '3d', text: '6', isCorrect: false),
-      ],
-      createdAt: DateTime.now(),
-    ),
-  ];
+  List<Question> _questions = [];
+  bool _isLoadingQuestions = true;
+  String? _questionsErrorMessage;
 
   @override
   void initState() {
@@ -70,7 +38,37 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
     _pageController = PageController();
     _startTime = DateTime.now();
     _remainingTime = Duration(minutes: widget.test.timeLimit);
+    _loadQuestions();
     _startTimer();
+  }
+
+  Future<void> _loadQuestions() async {
+    try {
+      print('DEBUG: _loadQuestions() called for test ID: ${widget.test.id}');
+      setState(() {
+        _isLoadingQuestions = true;
+        _questionsErrorMessage = null;
+      });
+
+      final testProvider = Provider.of<TestProvider>(context, listen: false);
+      _questions = await testProvider.getQuestions(widget.test.id);
+      _questions.shuffle(); // Randomize question order
+
+      print('DEBUG: Fetched ${_questions.length} questions.');
+      if (_questions.isNotEmpty) {
+        print('DEBUG: First question: ${_questions.first.text}');
+      }
+
+      setState(() {
+        _isLoadingQuestions = false;
+      });
+    } catch (e) {
+      print('DEBUG: Error in _loadQuestions(): $e');
+      setState(() {
+        _isLoadingQuestions = false;
+        _questionsErrorMessage = 'Failed to load questions: $e';
+      });
+    }
   }
 
   @override
@@ -496,10 +494,14 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
   int _calculateScore() {
     int correct = 0;
     for (int i = 0; i < _questions.length; i++) {
-      if (_selectedAnswers[i] == _questions[i].correctAnswerIndex) {
+      // Ensure the question exists and has a correct answer index
+      if (_questions[i].correctAnswerIndex != null && 
+          _selectedAnswers[i] == _questions[i].correctAnswerIndex) {
         correct++;
       }
     }
+    // Avoid division by zero if there are no questions
+    if (_questions.isEmpty) return 0;
     return ((correct / _questions.length) * 100).round();
   }
 

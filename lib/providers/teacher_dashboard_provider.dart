@@ -3,24 +3,35 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/services/test_service.dart';
 
+import 'package:testpoint/models/test_session_model.dart';
+import 'package:testpoint/services/group_service.dart';
+import 'package:testpoint/models/user_model.dart';
+
 class TeacherDashboardProvider with ChangeNotifier {
   final TestService _testService;
   final auth.FirebaseAuth _auth;
+  final GroupService _groupService;
 
   TeacherDashboardProvider({
     TestService? testService,
     auth.FirebaseAuth? firebaseAuth,
+    GroupService? groupService,
   })  : _testService = testService ?? TestService(),
-        _auth = firebaseAuth ?? auth.FirebaseAuth.instance;
+        _auth = firebaseAuth ?? auth.FirebaseAuth.instance,
+        _groupService = groupService ?? GroupService();
 
   // State variables
   List<Test> _allTests = [];
+  List<TestSession> _submissions = [];
+  Map<String, User> _studentMap = {};
   bool _isLoading = false;
   bool _hasInitiallyLoaded = false;
   String? _errorMessage;
 
   // Getters
   List<Test> get allTests => List.unmodifiable(_allTests);
+  List<TestSession> get submissions => List.unmodifiable(_submissions);
+  Map<String, User> get studentMap => Map.unmodifiable(_studentMap);
   bool get isLoading => _isLoading;
   bool get hasInitiallyLoaded => _hasInitiallyLoaded;
   String? get errorMessage => _errorMessage;
@@ -245,5 +256,31 @@ class TeacherDashboardProvider with ChangeNotifier {
   void setTestsForTesting(List<Test> tests) {
     _allTests = tests;
     notifyListeners();
+  }
+
+  // Fetch submissions for a test
+  Future<void> fetchSubmissions(String testId) async {
+    try {
+      print('DEBUG: fetchSubmissions called for testId: $testId');
+      _setLoading(true);
+      _clearError();
+      _submissions = await _testService.getTestSubmissions(testId);
+      print('DEBUG: Fetched ${_submissions.length} submissions.');
+
+      // Fetch student details
+      final uniqueStudentIds = _submissions.map((s) => s.studentId).toSet().toList();
+      print('DEBUG: Unique student IDs: $uniqueStudentIds');
+      final users = await _groupService.getUsers(uniqueStudentIds);
+      _studentMap = {for (var user in users) user.id: user};
+      print('DEBUG: Fetched ${_studentMap.length} student details.');
+      print('DEBUG: Student map keys: ${_studentMap.keys.toList()}');
+
+      notifyListeners();
+    } catch (e) {
+      print('DEBUG: Error fetching submissions: $e');
+      _setError('Failed to fetch submissions: $e');
+    } finally {
+      _setLoading(false);
+    }
   }
 }

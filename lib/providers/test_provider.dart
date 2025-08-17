@@ -326,8 +326,12 @@ class TestProvider with ChangeNotifier {
   // Public method to get questions for any test
   Future<List<Question>> getQuestions(String testId) async {
     try {
-      return await _testService.getQuestions(testId);
+      print('DEBUG: TestProvider.getQuestions called for testId: $testId');
+      final questions = await _testService.getQuestions(testId);
+      print('DEBUG: TestProvider.getQuestions fetched ${questions.length} questions.');
+      return questions;
     } catch (e) {
+      print('DEBUG: Error in TestProvider.getQuestions: $e');
       throw Exception('Failed to load questions: $e');
     }
   }

@@ -4,6 +4,10 @@ import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/models/question_model.dart';
 import 'package:testpoint/providers/test_provider.dart';
 
+import 'package:testpoint/providers/teacher_dashboard_provider.dart';
+import 'package:testpoint/features/teacher/screens/student_test_results_screen.dart';
+import 'package:testpoint/features/teacher/screens/all_student_results_screen.dart';
+
 class TestDetailsScreen extends StatefulWidget {
   final Test test;
 
@@ -28,6 +32,7 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadTestQuestions();
+    Provider.of<TeacherDashboardProvider>(context, listen: false).fetchSubmissions(widget.test.id);
   }
 
   @override
@@ -488,57 +493,91 @@ class _TestDetailsScreenState extends State<TestDetailsScreen>
   }
 
   Widget _buildAnalyticsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Test Analytics',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.analytics_outlined, 
-                          size: 64, 
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Analytics Coming Soon',
-                          style: TextStyle(
-                            fontSize: 18, 
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Detailed analytics will be available once students start taking the test',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+    return Consumer<TeacherDashboardProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (provider.errorMessage != null) {
+          return Center(child: Text(provider.errorMessage!));
+        }
+
+        if (widget.test.isCompleted) {
+          return Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => AllStudentResultsScreen(
+                        test: widget.test,
+                        submissions: provider.submissions,
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
+                child: const Text('View All Results'),
               ),
-            ),
-          ),
-        ],
-      ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: provider.submissions.length,
+                  itemBuilder: (context, index) {
+                    final submission = provider.submissions[index];
+                    final student = provider.studentMap[submission.studentId];
+                    return ListTile(
+                      title: Text(student?.name ?? submission.studentId),
+                      subtitle: Text('Score: ${submission.finalScore} - ${student?.email ?? 'No Email'}'),
+                      trailing: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => StudentTestResultsScreen(
+                                test: widget.test,
+                                submission: submission,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('View Results'),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        }
+
+        if (provider.submissions.isEmpty) {
+          return const Center(child: Text('No submissions yet.'));
+        }
+
+        return ListView.builder(
+          itemCount: provider.submissions.length,
+          itemBuilder: (context, index) {
+            final submission = provider.submissions[index];
+            final student = provider.studentMap[submission.studentId];
+            return ListTile(
+              title: Text(student?.name ?? submission.studentId),
+              subtitle: Text('Score: ${submission.finalScore} - ${student?.email ?? 'No Email'}'),
+              trailing: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => StudentTestResultsScreen(
+                        test: widget.test,
+                        submission: submission,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('View Results'),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

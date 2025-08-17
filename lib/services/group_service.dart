@@ -229,4 +229,32 @@ class GroupService {
       throw Exception('Failed to get student groups: $e');
     }
   }
+
+  Future<List<User>> getUsers(List<String> userIds) async {
+    try {
+      if (userIds.isEmpty) {
+        return [];
+      }
+
+      final List<User> users = [];
+      const batchSize = 10;
+      for (int i = 0; i < userIds.length; i += batchSize) {
+        final batch = userIds.skip(i).take(batchSize).toList();
+        
+        final querySnapshot = await _usersCollection
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+
+        final batchUsers = querySnapshot.docs
+            .map((doc) => User.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .toList();
+        
+        users.addAll(batchUsers);
+      }
+
+      return users;
+    } catch (e) {
+      throw Exception('Failed to get users: $e');
+    }
+  }
 }
