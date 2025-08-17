@@ -107,6 +107,29 @@ service cloud.firestore {
                       request.auth.uid in get(/databases/$(database)/documents/groups/$(get(/databases/$(database)/documents/tests/$(request.resource.data.test_id)).data.group_id)).data.userIds;
     }
 
+    // Test submissions collection
+    match /test_submissions/{submissionId} {
+      // Allow admins to read all submissions
+      allow read: if request.auth != null && isAdmin();
+      
+      // Allow teachers to read submissions for their tests
+      allow read: if request.auth != null && 
+                    isTeacher() && 
+                    get(/databases/$(database)/documents/tests/$(resource.data.testId)).data.test_maker == request.auth.uid;
+      
+      // Allow students to read their own submissions
+      allow read: if request.auth != null && 
+                    isStudent() && 
+                    resource.data.studentId == request.auth.uid;
+      
+      // Allow students to create submissions for tests they can access
+      allow create: if request.auth != null && 
+                     isStudent() && 
+                     request.resource.data.studentId == request.auth.uid &&
+                     // Check if the student has access to the test through their group
+                     request.auth.uid in get(/databases/$(database)/documents/groups/$(get(/databases/$(database)/documents/tests/$(request.resource.data.testId)).data.group_id)).data.userIds;
+    }
+
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;
