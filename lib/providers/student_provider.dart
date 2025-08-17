@@ -4,6 +4,9 @@ import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/models/user_model.dart';
 import 'package:testpoint/services/test_service.dart';
 import 'package:testpoint/services/group_service.dart';
+import 'package:testpoint/models/test_session_model.dart';
+
+import 'package:testpoint/models/question_model.dart';
 
 class StudentProvider extends ChangeNotifier {
   final TestService _testService;
@@ -108,13 +111,17 @@ class StudentProvider extends ChangeNotifier {
       }
       
       // Separate available and completed tests
-      _availableTests = allTests.where((test) => 
-        test.isPublished && !_isTestCompletedByStudent(test, currentUser.uid)
-      ).toList();
-      
-      _completedTests = allTests.where((test) => 
-        _isTestCompletedByStudent(test, currentUser.uid)
-      ).toList();
+      _availableTests = [];
+      _completedTests = [];
+
+      for (final test in allTests) {
+        final isCompleted = await _isTestCompletedByStudent(test, currentUser.uid);
+        if (isCompleted) {
+          _completedTests.add(test);
+        } else {
+          _availableTests.add(test);
+        }
+      }
 
       print('DEBUG: Available tests: ${_availableTests.length}');
       print('DEBUG: Completed tests: ${_completedTests.length}');
@@ -130,11 +137,53 @@ class StudentProvider extends ChangeNotifier {
     }
   }
 
-  // Check if test is completed by student (placeholder - will be replaced with actual test session check)
-  bool _isTestCompletedByStudent(Test test, String studentId) {
-    // TODO: Check test_sessions collection for completion
-    // For now, return false to show all tests as available
-    return false;
+  Future<bool> _isTestCompletedByStudent(Test test, String studentId) async {
+    final session = await _testService.getTestSession(test.id, studentId);
+    return session != null && (session.status == TestSessionStatus.completed || session.status == TestSessionStatus.submitted);
+  }
+
+  Future<void> submitTest(Test test, List<Question> questions, Map<int, int> answers, int score) async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('User must be authenticated');
+      }
+
+      final questionOrder = questions.map((q) => q.id).toList();
+      final studentAnswers = <String, StudentAnswer>{};
+      for (int i = 0; i < questions.length; i++) {
+        final question = questions[i];
+        final selectedAnswerIndex = answers[i];
+        if (selectedAnswerIndex != null) {
+          final isCorrect = question.correctAnswerIndex == selectedAnswerIndex;
+          studentAnswers[question.id] = StudentAnswer(
+            selectedAnswerIndex: selectedAnswerIndex,
+            answeredAt: DateTime.now(),
+            isCorrect: isCorrect,
+          );
+        }
+      }
+
+      final session = TestSession(
+        id: '${test.id}_${currentUser.uid}',
+        testId: test.id,
+        studentId: currentUser.uid,
+        startTime: DateTime.now(), // This should be set when the test starts
+        endTime: DateTime.now(),
+        timeLimit: test.timeLimit,
+        answers: studentAnswers,
+        questionOrder: questionOrder,
+        status: TestSessionStatus.submitted,
+        violations: [],
+        finalScore: score,
+        createdAt: DateTime.now(),
+      );
+
+      await _testService.submitTestSession(session);
+      await refreshTests();
+    } catch (e) {
+      _setError('Failed to submit test: $e');
+    }
   }
 
   // Check if test is available to take
@@ -149,7 +198,7 @@ class StudentProvider extends ChangeNotifier {
     return test.isPublished && 
            test.dateTime.isBefore(now.add(Duration(minutes: 5))) && // Allow 5 minutes early access
            !test.isExpired &&
-           !_isTestCompletedByStudent(test, _auth.currentUser?.uid ?? '');
+           !_completedTests.any((t) => t.id == test.id);
   }
 
   // Get test status for display
@@ -157,7 +206,7 @@ class StudentProvider extends ChangeNotifier {
     final now = DateTime.now();
     final studentId = _auth.currentUser?.uid ?? '';
 
-    if (_isTestCompletedByStudent(test, studentId)) {
+    if (_completedTests.any((t) => t.id == test.id)) {
       return 'Completed';
     }
 

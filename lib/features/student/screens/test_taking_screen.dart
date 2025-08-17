@@ -4,6 +4,9 @@ import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/models/question_model.dart';
 import 'package:testpoint/config/app_routes.dart';
 
+import 'package:provider/provider.dart';
+import 'package:testpoint/providers/student_provider.dart';
+
 class TestTakingScreen extends StatefulWidget {
   final Test test;
 
@@ -478,11 +481,15 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
   }
 
   void _submitTest() {
-    context.go(AppRoutes.testResults, extra: {
-      'test': widget.test,
-      'questions': _questions,
-      'answers': _selectedAnswers,
-      'score': _calculateScore(),
+    final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+    final score = _calculateScore();
+    studentProvider.submitTest(widget.test, _questions, _selectedAnswers, score).then((_) {
+      context.go(AppRoutes.testResults, extra: {
+        'test': widget.test,
+        'questions': _questions,
+        'answers': _selectedAnswers,
+        'score': score,
+      });
     });
   }
 

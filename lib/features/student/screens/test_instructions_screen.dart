@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/config/app_routes.dart';
 
+import 'package:provider/provider.dart';
+import 'package:testpoint/providers/student_provider.dart';
+
 class TestInstructionsScreen extends StatefulWidget {
   final Test test;
 
@@ -21,6 +24,9 @@ class _TestInstructionsScreenState extends State<TestInstructionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final studentProvider = Provider.of<StudentProvider>(context);
+    final isCompleted = studentProvider.completedTests.any((t) => t.id == widget.test.id);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Test Instructions'),
@@ -36,13 +42,17 @@ class _TestInstructionsScreenState extends State<TestInstructionsScreen> {
             const SizedBox(height: 24),
             _buildTestDetails(),
             const SizedBox(height: 24),
-            _buildInstructions(),
-            const SizedBox(height: 24),
-            _buildAntiCheatWarning(),
-            const SizedBox(height: 24),
-            _buildConfirmationSection(),
+            if (isCompleted)
+              _buildAlreadyCompletedWarning()
+            else ...[
+              _buildInstructions(),
+              const SizedBox(height: 24),
+              _buildAntiCheatWarning(),
+              const SizedBox(height: 24),
+              _buildConfirmationSection(),
+            ],
             const SizedBox(height: 32),
-            _buildStartButton(),
+            _buildStartButton(isCompleted),
           ],
         ),
       ),
@@ -447,15 +457,15 @@ class _TestInstructionsScreenState extends State<TestInstructionsScreen> {
     );
   }
 
-  Widget _buildStartButton() {
-    final canStart = _hasReadInstructions && _agreeToTerms;
-    
+  Widget _buildStartButton(bool isCompleted) {
+    final canStart = _hasReadInstructions && _agreeToTerms && !isCompleted;
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: canStart ? _startTest : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.primary,
+          backgroundColor: isCompleted ? Colors.grey : Theme.of(context).colorScheme.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -471,7 +481,9 @@ class _TestInstructionsScreenState extends State<TestInstructionsScreen> {
               const SizedBox(width: 8),
             ],
             Text(
-              canStart ? 'Start Test' : 'Please confirm all checkboxes to continue',
+              isCompleted
+                  ? 'Test Already Completed'
+                  : (canStart ? 'Start Test' : 'Please confirm all checkboxes to continue'),
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -479,6 +491,49 @@ class _TestInstructionsScreenState extends State<TestInstructionsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAlreadyCompletedWarning() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.green.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Test Completed',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[700],
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'You have already completed this test. You can view your results in the completed tests section.',
+            style: TextStyle(
+              color: Colors.green[800],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

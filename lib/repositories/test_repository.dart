@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/models/question_model.dart';
 import 'package:testpoint/models/group_model.dart';
+import 'package:testpoint/models/test_session_model.dart';
 
 class TestRepository {
   final FirebaseFirestore _firestore;
@@ -17,6 +18,8 @@ class TestRepository {
   // Collection references
   CollectionReference get _testsCollection => _firestore.collection('tests');
   CollectionReference get _groupsCollection => _firestore.collection('groups');
+  CollectionReference get _testSessionsCollection =>
+      _firestore.collection('test_sessions');
 
   // Test CRUD operations
   Future<String> createTest(Test test) async {
@@ -367,6 +370,34 @@ class TestRepository {
       return !test.isPublished;
     } catch (e) {
       return false;
+    }
+  }
+
+  // Test session operations
+  Future<TestSession?> getTestSession(String testId, String studentId) async {
+    try {
+      final querySnapshot = await _testSessionsCollection
+          .where('test_id', isEqualTo: testId)
+          .where('student_id', isEqualTo: studentId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final doc = querySnapshot.docs.first;
+      return TestSession.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    } catch (e) {
+      throw Exception('Failed to get test session: $e');
+    }
+  }
+
+  Future<void> submitTestSession(TestSession session) async {
+    try {
+      await _testSessionsCollection.doc(session.id).set(session.toMap());
+    } catch (e) {
+      throw Exception('Failed to submit test session: $e');
     }
   }
 }

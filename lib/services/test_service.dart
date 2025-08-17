@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/models/question_model.dart';
 import 'package:testpoint/models/group_model.dart';
+import 'package:testpoint/models/test_session_model.dart';
 import 'package:testpoint/repositories/test_repository.dart';
 import 'package:testpoint/services/group_service.dart';
 
@@ -374,6 +375,23 @@ class TestService {
       return createdTest;
     } catch (e) {
       throw Exception('Failed to duplicate test: $e');
+    }
+  }
+
+  // Test session operations
+  Future<TestSession?> getTestSession(String testId, String studentId) async {
+    try {
+      return await _testRepository.getTestSession(testId, studentId);
+    } catch (e) {
+      throw Exception('Failed to get test session: $e');
+    }
+  }
+
+  Future<void> submitTestSession(TestSession session) async {
+    try {
+      await _testRepository.submitTestSession(session);
+    } catch (e) {
+      throw Exception('Failed to submit test session: $e');
     }
   }
 }
