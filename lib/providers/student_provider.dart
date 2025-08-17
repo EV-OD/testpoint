@@ -39,17 +39,13 @@ class StudentProvider extends ChangeNotifier {
   // Get pending tests (available and not yet taken)
   List<Test> get pendingTests {
     final now = DateTime.now();
-    print('DEBUG: Current time: $now');
     
     final filtered = _availableTests.where((test) {
-      print('DEBUG: Test ${test.name} - DateTime: ${test.dateTime} - Published: ${test.isPublished} - Expired: ${test.isExpired}');
-      
       // Show published tests that are not expired
       // This includes both current tests and future scheduled tests
       return test.isPublished && !test.isExpired;
     }).toList();
     
-    print('DEBUG: Filtered pending tests: ${filtered.length}');
     return filtered;
   }
 
@@ -83,53 +79,58 @@ class StudentProvider extends ChangeNotifier {
         throw Exception('User must be authenticated');
       }
 
-      print('DEBUG: Loading tests for user: ${currentUser.uid}');
+      print('--- loadStudentTests ---');
+      print('User: ${currentUser.uid}');
 
       // Get user's groups
       final userGroups = await _groupService.getUserGroups(currentUser.uid);
       final groupIds = userGroups.map((g) => g.id).toList();
 
-      print('DEBUG: User groups: $groupIds');
-      print('DEBUG: Group names: ${userGroups.map((g) => g.name).toList()}');
+      print('Groups: $groupIds');
 
       if (groupIds.isEmpty) {
-        print('DEBUG: No groups found for user');
         _availableTests = [];
         _completedTests = [];
         _hasInitiallyLoaded = true;
         notifyListeners();
+        print('No groups found. Tests loaded: 0 available, 0 completed.');
+        print('--- end loadStudentTests ---');
         return;
       }
 
       // Get tests for user's groups
       final allTests = await _testService.getTestsByGroups(groupIds);
-      
-      print('DEBUG: Found ${allTests.length} total tests');
-      print('DEBUG: Test details:');
+      print('Total tests fetched: ${allTests.length}');
+
       for (var test in allTests) {
-        print('  - ${test.name} (${test.id}) - Group: ${test.groupId} - Published: ${test.isPublished} - Status: ${test.status}');
+        print('  - Test: ${test.name} (${test.id})');
       }
       
       // Separate available and completed tests
-      _availableTests = [];
-      _completedTests = [];
+      final newAvailableTests = <Test>[];
+      final newCompletedTests = <Test>[];
 
       for (final test in allTests) {
         final isCompleted = await _isTestCompletedByStudent(test, currentUser.uid);
+        print('  - Test: ${test.name}, isCompleted: $isCompleted');
         if (isCompleted) {
-          _completedTests.add(test);
+          newCompletedTests.add(test);
         } else {
-          _availableTests.add(test);
+          newAvailableTests.add(test);
         }
       }
 
-      print('DEBUG: Available tests: ${_availableTests.length}');
-      print('DEBUG: Completed tests: ${_completedTests.length}');
+      _availableTests = newAvailableTests;
+      _completedTests = newCompletedTests;
 
+      print('Available tests: ${_availableTests.map((t) => t.name).toList()}');
+      print('Completed tests: ${_completedTests.map((t) => t.name).toList()}');
+      
       _hasInitiallyLoaded = true;
       notifyListeners();
+      print('--- end loadStudentTests ---');
     } catch (e) {
-      print('DEBUG: Error loading tests: $e');
+      print('Error loading tests: $e');
       _setError('Failed to load tests: $e');
       _hasInitiallyLoaded = true;
     } finally {
@@ -138,8 +139,21 @@ class StudentProvider extends ChangeNotifier {
   }
 
   Future<bool> _isTestCompletedByStudent(Test test, String studentId) async {
+    print('--- _isTestCompletedByStudent ---');
+    print('Test: ${test.name} (${test.id}), Student: $studentId');
     final session = await _testService.getTestSession(test.id, studentId);
-    return session != null && (session.status == TestSessionStatus.completed || session.status == TestSessionStatus.submitted);
+    if (session != null) {
+      print('  - Session found: status = ${session.status}');
+      final bool isCompleted = session.status == TestSessionStatus.completed || session.status == TestSessionStatus.submitted;
+      print('  - Returning: $isCompleted');
+      print('--- end _isTestCompletedByStudent ---');
+      return isCompleted;
+    } else {
+      print('  - No session found.');
+      print('  - Returning: false');
+      print('--- end _isTestCompletedByStudent ---');
+      return false;
+    }
   }
 
   Future<void> submitTest(Test test, List<Question> questions, Map<int, int> answers, int score) async {
