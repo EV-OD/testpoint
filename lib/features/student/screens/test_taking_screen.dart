@@ -86,8 +86,44 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
   }
 
   void _startTimer() {
-    // Simple timer implementation
-    // In production, this should be more robust with proper state management
+    // Start countdown timer that updates every second
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return false;
+      
+      setState(() {
+        _remainingTime = Duration(
+          seconds: _remainingTime.inSeconds - 1,
+        );
+      });
+
+      // Check if time is up
+      if (_remainingTime.inSeconds <= 0) {
+        _handleTimeUp();
+        return false;
+      }
+      return true;
+    });
+  }
+
+  void _handleTimeUp() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Time\'s Up!'),
+        content: const Text('Your test time has expired. Your answers will be submitted automatically.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _submitTest();
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleAntiCheatViolation(String violation) {
@@ -369,9 +405,11 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
           if (!isFirstQuestion && !isLastQuestion) const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
-              onPressed: isLastQuestion ? _reviewAnswers : _nextQuestion,
+              onPressed: isLastQuestion ? _submitTest : _nextQuestion,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
+                backgroundColor: isLastQuestion 
+                    ? Colors.green 
+                    : Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
@@ -381,10 +419,10 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(isLastQuestion ? 'Review Answers' : 'Next'),
+                  Text(isLastQuestion ? 'Submit Test' : 'Next'),
                   const SizedBox(width: 8),
                   Icon(
-                    isLastQuestion ? Icons.preview : Icons.arrow_forward,
+                    isLastQuestion ? Icons.send : Icons.arrow_forward,
                     size: 18,
                   ),
                 ],
@@ -414,10 +452,7 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
     }
   }
 
-  void _reviewAnswers() {
-    // TODO: Navigate to review screen or directly submit
-    _submitTest();
-  }
+
 
   Future<bool?> _showExitConfirmation() {
     return showDialog<bool>(
