@@ -122,6 +122,12 @@ This collection stores test definitions created by teachers.
   - `"published"`: Available to students at scheduled time
   - `"completed"`: Past end time, results available
 
+### Computed Properties: ✅ IMPLEMENTED
+- **`testEndTime`**: Calculated end time (dateTime + timeLimit)
+- **`isTimeUp`**: Whether the test time period has ended
+- **`areResultsAvailable`**: Whether students can view results (based on test end time)
+- **`isCurrentlyActive`**: Whether test is currently within the active time window
+
 ### Test Lifecycle: ✅ IMPLEMENTED
 1. **Draft**: Teacher creates and edits test freely
 2. **Published**: Test becomes available to assigned students
@@ -134,6 +140,7 @@ This collection stores test definitions created by teachers.
 - Group-based test assignment
 - Test status lifecycle management
 - Question count auto-calculation
+- **Delayed Results System**: Time-based result access control preventing students from seeing results until test period ends
 
 ### Security Rules: ✅ IMPLEMENTED
 - Admins: Full access to all tests
@@ -158,6 +165,7 @@ Each test document contains a `questions` subcollection with MCQ data.
       "isCorrect": "Boolean"
     }
   ],
+  "correctOptionIndex": "Number",
   "created_at": "Timestamp"
 }
 ```
@@ -168,8 +176,11 @@ Each test document contains a `questions` subcollection with MCQ data.
 - **`options`**: (Array of Objects) Four answer choices:
   - **`id`**: (String) Unique option identifier
   - **`text`**: (String) Answer option text
-  - **`isCorrect`**: (Boolean) True for correct answer (exactly one per question)
+  - **`isCorrect`**: (Boolean) Legacy field for backward compatibility
+- **`correctOptionIndex`**: (Number) The index of the correct option in the `options` array (preferred method).
 - **`created_at`**: (Timestamp) Question creation time
+
+**Note**: The system supports **dual compatibility** - both `correctOptionIndex` (preferred) and `isCorrect` boolean flags for backward compatibility.
 
 ##### Implementation Features:
 - Question creation and editing interface

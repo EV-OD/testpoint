@@ -257,4 +257,29 @@ class StudentProvider extends ChangeNotifier {
       return null;
     }
   }
+
+  // Get test session data for completed tests
+  Future<TestSession?> getTestSession(String testId) async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('User must be authenticated');
+      }
+      
+      return await _testService.getTestSession(testId, currentUser.uid);
+    } catch (e) {
+      print('Error getting test session: $e');
+      return null;
+    }
+  }
+
+  // Get test questions for results display
+  Future<List<Question>> getTestQuestions(String testId) async {
+    try {
+      return await _testService.getQuestions(testId);
+    } catch (e) {
+      print('Error getting test questions: $e');
+      return [];
+    }
+  }
 }

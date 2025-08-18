@@ -7,5 +7,6 @@ class AppRoutes {
   static const String testInstructions = '/test-instructions';
   static const String testTaking = '/test-taking';
   static const String testResults = '/test-results';
+  static const String testSubmitted = '/test-submitted';
   static const String testReview = '/test-review';
 }

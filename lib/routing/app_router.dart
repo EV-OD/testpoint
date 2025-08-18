@@ -10,6 +10,7 @@ import 'package:testpoint/features/auth/screens/initial_password_change_screen.d
 import 'package:testpoint/features/student/screens/test_instructions_screen.dart';
 import 'package:testpoint/features/student/screens/test_taking_screen.dart';
 import 'package:testpoint/features/student/screens/test_results_screen.dart';
+import 'package:testpoint/features/student/screens/test_submitted_screen.dart';
 import 'package:testpoint/providers/auth_provider.dart';
 import 'package:testpoint/models/user_model.dart';
 import 'package:testpoint/models/test_model.dart';
@@ -63,6 +64,13 @@ final GoRouter Function(AuthProvider) router = (authProvider) => GoRouter(
           answers: data['answers'] as Map<int, int>,
           score: data['score'] as int,
         );
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.testSubmitted,
+      builder: (context, state) {
+        final test = state.extra as Test;
+        return TestSubmittedScreen(test: test);
       },
     ),
   ],

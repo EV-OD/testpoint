@@ -312,13 +312,65 @@ class StudentTestList extends StatelessWidget {
     context.go(AppRoutes.testInstructions, extra: test);
   }
 
-  void _navigateToTestResults(BuildContext context, Test test) {
-    // TODO: Get actual test session data for results
-    context.go(AppRoutes.testResults, extra: {
-      'test': test,
-      'questions': <Question>[], // TODO: Load actual questions
-      'answers': <int, int>{}, // TODO: Load actual answers
-      'score': 0, // TODO: Load actual score
-    });
+  void _navigateToTestResults(BuildContext context, Test test) async {
+    try {
+      final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+      
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+      
+      // Load the actual test session data
+      final testSession = await studentProvider.getTestSession(test.id);
+      final questions = await studentProvider.getTestQuestions(test.id);
+      
+      // Hide loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+      
+      if (testSession != null && questions.isNotEmpty && context.mounted) {
+        // Convert test session answers to the format expected by TestResultsScreen
+        final answersMap = <int, int>{};
+        for (int i = 0; i < questions.length; i++) {
+          final question = questions[i];
+          final sessionAnswer = testSession.answers[question.id];
+          if (sessionAnswer != null) {
+            answersMap[i] = sessionAnswer.selectedAnswerIndex;
+          }
+        }
+        
+        context.go(AppRoutes.testResults, extra: {
+          'test': test,
+          'questions': questions,
+          'answers': answersMap,
+          'score': testSession.finalScore ?? 0,
+        });
+      } else if (context.mounted) {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load test results. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading dialog if still showing
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading test results: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

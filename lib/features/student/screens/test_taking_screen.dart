@@ -527,12 +527,19 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
       await studentProvider.submitTest(widget.test, _questions, _selectedAnswers, score);
       
       if (mounted) {
-        context.go(AppRoutes.testResults, extra: {
-          'test': widget.test,
-          'questions': _questions,
-          'answers': _selectedAnswers,
-          'score': score,
-        });
+        // Check if results should be available immediately
+        if (widget.test.areResultsAvailable) {
+          // Test time is over, show results immediately
+          context.go(AppRoutes.testResults, extra: {
+            'test': widget.test,
+            'questions': _questions,
+            'answers': _selectedAnswers,
+            'score': score,
+          });
+        } else {
+          // Test time is still active, show submission confirmation
+          context.go(AppRoutes.testSubmitted, extra: widget.test);
+        }
       }
     } catch (e) {
       if (mounted) {

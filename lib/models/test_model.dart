@@ -180,6 +180,19 @@ class Test {
     return errors;
   }
 
+  // Time-based computed properties
+  DateTime get testEndTime => dateTime.add(Duration(minutes: timeLimit));
+  
+  bool get isTimeUp => DateTime.now().isAfter(testEndTime);
+  
+  bool get areResultsAvailable => isTimeUp;
+  
+  // Check if the test is currently active (started but not ended)
+  bool get isCurrentlyActive {
+    final now = DateTime.now();
+    return now.isAfter(dateTime) && now.isBefore(testEndTime);
+  }
+
   @override
   String toString() {
     return 'Test(id: $id, name: $name, groupId: $groupId, timeLimit: $timeLimit, questionCount: $questionCount, dateTime: $dateTime, testMaker: $testMaker, createdAt: $createdAt)';
