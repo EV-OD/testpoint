@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:testpoint/providers/auth_provider.dart';
+import 'package:testpoint/providers/student_statistics_provider.dart';
 
 class StudentProfile extends StatelessWidget {
   const StudentProfile({super.key});
@@ -29,6 +30,10 @@ class StudentProfile extends StatelessWidget {
           
           // Quick Stats
           _buildQuickStatsSection(context),
+          const SizedBox(height: 20),
+          
+          // Detailed Performance Section
+          _buildDetailedPerformanceSection(context),
           const SizedBox(height: 100), // Bottom padding for navigation
         ],
       ),
@@ -245,88 +250,171 @@ class StudentProfile extends StatelessWidget {
   }
 
   Widget _buildQuickStatsSection(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Consumer<StudentStatisticsProvider>(
+      builder: (context, statsProvider, child) {
+        if (statsProvider.loading && !statsProvider.hasInitiallyLoaded) {
+          return Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: const Padding(
+              padding: EdgeInsets.all(60),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+
+        final stats = statsProvider.statistics;
+        
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.analytics_outlined,
-                    color: Colors.blue,
-                    size: 20,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.analytics_outlined,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Quick Stats',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (statsProvider.loading)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: statsProvider.loading 
+                        ? null 
+                        : () => statsProvider.refreshStatistics(),
+                      tooltip: 'Refresh Statistics',
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  'Quick Stats',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                
+                if (statsProvider.error != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      border: Border.all(color: Colors.red.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            statsProvider.error!,
+                            style: TextStyle(color: Colors.red.shade700),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+                
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Tests Taken',
+                        '${stats.testsTaken}',
+                        Icons.quiz,
+                        Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Average Score',
+                        statsProvider.getFormattedAverageScore(),
+                        Icons.score,
+                        Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Pending Tests',
+                        '${stats.pendingTests}',
+                        Icons.pending,
+                        Colors.orange,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Best Score',
+                        statsProvider.getFormattedBestScore(),
+                        Icons.star,
+                        Colors.purple,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Additional stats row
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Accuracy',
+                        statsProvider.getAccuracyPercentage(),
+                        Icons.gps_fixed,
+                        Colors.teal,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        context,
+                        'Grade',
+                        statsProvider.getPerformanceGrade(),
+                        Icons.grade,
+                        Colors.indigo,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Tests Taken',
-                    '0',
-                    Icons.quiz,
-                    Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Average Score',
-                    'N/A',
-                    Icons.score,
-                    Colors.green,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Pending Tests',
-                    '0',
-                    Icons.pending,
-                    Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Best Score',
-                    'N/A',
-                    Icons.star,
-                    Colors.purple,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -405,5 +493,241 @@ class StudentProfile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildDetailedPerformanceSection(BuildContext context) {
+    return Consumer<StudentStatisticsProvider>(
+      builder: (context, statsProvider, child) {
+        if (statsProvider.loading && !statsProvider.hasInitiallyLoaded) {
+          return const SizedBox.shrink();
+        }
+
+        final stats = statsProvider.statistics;
+        
+        if (stats.testsTaken == 0) {
+          return Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.assessment_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Test Data Yet',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Take your first test to see detailed performance analytics here.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.assessment_outlined,
+                        color: Colors.purple,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Detailed Performance',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // Performance metrics
+                _buildPerformanceMetric(
+                  context,
+                  'Overall Grade',
+                  statsProvider.getPerformanceGrade(),
+                  Icons.grade,
+                  _getGradeColor(statsProvider.getPerformanceGrade()),
+                ),
+                const SizedBox(height: 12),
+                
+                _buildPerformanceMetric(
+                  context,
+                  'Question Accuracy',
+                  statsProvider.getAccuracyPercentage(),
+                  Icons.gps_fixed,
+                  Colors.teal,
+                ),
+                const SizedBox(height: 12),
+                
+                _buildPerformanceMetric(
+                  context,
+                  'Total Questions Answered',
+                  '${stats.totalQuestions}',
+                  Icons.quiz_outlined,
+                  Colors.blue,
+                ),
+                const SizedBox(height: 12),
+                
+                _buildPerformanceMetric(
+                  context,
+                  'Correct Answers',
+                  '${stats.correctAnswers}',
+                  Icons.check_circle_outline,
+                  Colors.green,
+                ),
+                const SizedBox(height: 12),
+                
+                _buildPerformanceMetric(
+                  context,
+                  'Progress Trend',
+                  statsProvider.getImprovementTrend(),
+                  Icons.trending_up,
+                  Colors.orange,
+                ),
+                
+                // Progress indicator
+                if (stats.testsTaken > 0) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Performance Overview',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Completion Rate',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blue.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  LinearProgressIndicator(
+                                    value: stats.testsTaken / (stats.testsTaken + stats.pendingTests),
+                                    backgroundColor: Colors.blue.shade100,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${stats.testsTaken} of ${stats.testsTaken + stats.pendingTests} tests completed',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.blue.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPerformanceMetric(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getGradeColor(String grade) {
+    if (grade.startsWith('A')) return Colors.green;
+    if (grade.startsWith('B')) return Colors.blue;
+    if (grade.startsWith('C')) return Colors.orange;
+    if (grade.startsWith('D')) return Colors.red.shade400;
+    if (grade == 'F') return Colors.red;
+    return Colors.grey;
   }
 }

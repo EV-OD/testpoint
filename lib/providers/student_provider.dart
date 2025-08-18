@@ -169,7 +169,8 @@ class StudentProvider extends ChangeNotifier {
         final question = questions[i];
         final selectedAnswerIndex = answers[i];
         if (selectedAnswerIndex != null) {
-          final isCorrect = question.correctAnswerIndex == selectedAnswerIndex;
+          final correctIndex = question.correctAnswerIndex;
+          final isCorrect = correctIndex >= 0 && correctIndex == selectedAnswerIndex;
           studentAnswers[question.id] = StudentAnswer(
             selectedAnswerIndex: selectedAnswerIndex,
             answeredAt: DateTime.now(),

@@ -5,17 +5,26 @@ class Question {
   final String text;
   final List<QuestionOption> options; // 4 options
   final DateTime createdAt;
+  final int? correctOptionIndex; // Add this field to store the correct answer index
 
   const Question({
     required this.id,
     required this.text,
     required this.options,
     required this.createdAt,
+    this.correctOptionIndex,
   });
 
   // Get the correct answer option
   QuestionOption? get correctOption {
     try {
+      // First try using correctOptionIndex
+      if (correctOptionIndex != null && 
+          correctOptionIndex! >= 0 && 
+          correctOptionIndex! < options.length) {
+        return options[correctOptionIndex!];
+      }
+      // Fallback to searching for isCorrect boolean
       return options.firstWhere((option) => option.isCorrect);
     } catch (e) {
       return null;
@@ -24,6 +33,19 @@ class Question {
 
   // Get the index of the correct answer (0-3)
   int get correctAnswerIndex {
+    // Validate that we have exactly 4 options
+    if (options.length != 4) {
+      return -1; // Invalid question structure
+    }
+    
+    // First check if we have correctOptionIndex field
+    if (correctOptionIndex != null) {
+      if (correctOptionIndex! >= 0 && correctOptionIndex! < options.length) {
+        return correctOptionIndex!;
+      }
+    }
+    
+    // Fallback to searching for isCorrect boolean
     for (int i = 0; i < options.length; i++) {
       if (options[i].isCorrect) {
         return i;
@@ -32,13 +54,35 @@ class Question {
     return -1; // No correct answer found
   }
 
+  // Get a safe correct answer index that returns null if invalid
+  int? get safeCorrectAnswerIndex {
+    final index = correctAnswerIndex;
+    return index >= 0 ? index : null;
+  }
+
+  // Get the correct answer text safely
+  String get correctAnswerText {
+    final correctIndex = correctAnswerIndex;
+    if (correctIndex >= 0 && correctIndex < options.length) {
+      return '${String.fromCharCode(65 + correctIndex)}. ${options[correctIndex].text}';
+    }
+    return 'Not specified';
+  }
+
   // Firebase serialization methods
   Map<String, dynamic> toMap() {
-    return {
+    Map<String, dynamic> map = {
       'text': text,
       'options': options.map((option) => option.toMap()).toList(),
       'created_at': Timestamp.fromDate(createdAt),
     };
+    
+    // Add correctOptionIndex if available
+    if (correctOptionIndex != null) {
+      map['correctOptionIndex'] = correctOptionIndex;
+    }
+    
+    return map;
   }
 
   static Question fromMap(String id, Map<String, dynamic> map) {
@@ -50,6 +94,7 @@ class Question {
               .toList() ??
           [],
       createdAt: _parseDateTime(map['created_at']),
+      correctOptionIndex: map['correctOptionIndex'] as int?,
     );
   }
 
@@ -87,12 +132,14 @@ class Question {
     String? text,
     List<QuestionOption>? options,
     DateTime? createdAt,
+    int? correctOptionIndex,
   }) {
     return Question(
       id: id ?? this.id,
       text: text ?? this.text,
       options: options ?? this.options,
       createdAt: createdAt ?? this.createdAt,
+      correctOptionIndex: correctOptionIndex ?? this.correctOptionIndex,
     );
   }
 
@@ -106,9 +153,18 @@ class Question {
   }
 
   bool _hasExactlyOneCorrectAnswer() {
+    // First check if correctOptionIndex is valid
+    if (correctOptionIndex != null && 
+        correctOptionIndex! >= 0 && 
+        correctOptionIndex! < options.length) {
+      return true;
+    }
+    // Fallback to checking isCorrect flags
     int correctCount = options.where((option) => option.isCorrect).length;
     return correctCount == 1;
   }
+
+  bool get hasValidCorrectAnswer => _hasExactlyOneCorrectAnswer();
 
   bool _allOptionsAreUnique() {
     Set<String> uniqueTexts = options.map((option) => option.text.trim().toLowerCase()).toSet();

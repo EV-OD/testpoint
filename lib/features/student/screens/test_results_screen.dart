@@ -307,7 +307,8 @@ class TestResultsScreen extends StatelessWidget {
             final index = entry.key;
             final question = entry.value;
             final selectedAnswer = answers[index];
-            final isCorrect = selectedAnswer == question.correctAnswerIndex;
+            final correctIndex = question.correctAnswerIndex;
+            final isCorrect = selectedAnswer != null && correctIndex >= 0 && selectedAnswer == correctIndex;
             final wasAnswered = selectedAnswer != null;
 
             return Container(
@@ -399,13 +400,44 @@ class TestResultsScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                  if (!isCorrect) ...[
+                  if (!isCorrect && correctIndex >= 0) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Correct answer: ${String.fromCharCode(65 + question.correctAnswerIndex)}. ${question.options[question.correctAnswerIndex].text}',
+                      'Correct answer: ${question.correctAnswerText}',
                       style: TextStyle(
                         color: Colors.green[700],
                         fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  if (correctIndex < 0) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_outlined,
+                            size: 16,
+                            color: Colors.orange[700],
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'This question has no correct answer specified. Please contact your teacher.',
+                              style: TextStyle(
+                                color: Colors.orange[700],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -492,7 +524,25 @@ class TestResultsScreen extends StatelessWidget {
   int _calculateCorrectAnswers() {
     int correct = 0;
     for (int i = 0; i < questions.length; i++) {
-      if (answers[i] == questions[i].correctAnswerIndex) {
+      final question = questions[i];
+      final correctIndex = question.correctAnswerIndex;
+      final selectedAnswer = answers[i];
+      
+      // Debug logging for questions without correct answers
+      if (correctIndex < 0) {
+        print('=== QUESTION VALIDATION DEBUG ===');
+        print('WARNING: Question ${i + 1} "${question.text}" has no correct answer set!');
+        print('correctOptionIndex field: ${question.correctOptionIndex}');
+        print('Calculated correctAnswerIndex: ${question.correctAnswerIndex}');
+        print('Options count: ${question.options.length}');
+        print('Question options:');
+        for (int j = 0; j < question.options.length; j++) {
+          print('  ${String.fromCharCode(65 + j)}. ${question.options[j].text} (isCorrect: ${question.options[j].isCorrect})');
+        }
+        print('=== END DEBUG ===');
+      }
+      
+      if (correctIndex >= 0 && selectedAnswer == correctIndex) {
         correct++;
       }
     }

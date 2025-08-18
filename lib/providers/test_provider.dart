@@ -206,6 +206,7 @@ class TestProvider with ChangeNotifier {
         text: questionTextController.text.trim(),
         options: options,
         createdAt: DateTime.now(),
+        correctOptionIndex: _selectedCorrectAnswer, // Add this line
       );
 
       final addedQuestion = await _testService.addQuestion(_currentTest!.id, question);
@@ -440,6 +441,12 @@ class TestProvider with ChangeNotifier {
     final uniqueTexts = optionTexts.toSet();
     if (uniqueTexts.length != optionTexts.length) {
       _setError('All options must be unique');
+      return false;
+    }
+
+    // Ensure a correct answer is selected
+    if (_selectedCorrectAnswer < 0 || _selectedCorrectAnswer >= optionControllers.length) {
+      _setError('Please select the correct answer');
       return false;
     }
 

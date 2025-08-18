@@ -98,6 +98,9 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
             
             const SizedBox(height: 16),
             
+            // Validation Warnings
+            _buildValidationWarnings(context, questions),
+            
             // Preview Controls
             _buildPreviewControls(context),
             
@@ -274,6 +277,7 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
 
   Widget _buildQuestionPreview(BuildContext context, Question question, int questionNumber) {
     final theme = Theme.of(context);
+    final hasValidCorrectAnswer = question.hasValidCorrectAnswer;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,13 +289,17 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
+                color: hasValidCorrectAnswer 
+                  ? theme.colorScheme.primary 
+                  : theme.colorScheme.error,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 'Q$questionNumber',
                 style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
+                  color: hasValidCorrectAnswer 
+                    ? theme.colorScheme.onPrimary 
+                    : theme.colorScheme.onError,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
@@ -308,6 +316,39 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
             ),
           ],
         ),
+        
+        // Validation Warning
+        if (!hasValidCorrectAnswer) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              border: Border.all(color: Colors.red.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_outlined,
+                  size: 20,
+                  color: Colors.red.shade700,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Warning: This question has no correct answer selected! Students will not be able to get this question right.',
+                    style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         
         const SizedBox(height: 12),
         
@@ -392,6 +433,9 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
   }
 
   Widget _buildActionButtons(BuildContext context, TestProvider provider) {
+    final questions = provider.questions;
+    final hasInvalidQuestions = questions.any((q) => !q.hasValidCorrectAnswer);
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -435,7 +479,7 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: provider.isSaving 
+              onPressed: (provider.isSaving || hasInvalidQuestions)
                 ? null 
                 : () => _publishTest(context, provider),
               icon: provider.isSaving 
@@ -444,10 +488,21 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.publish),
-              label: Text(provider.isSaving ? 'Publishing...' : 'Publish Test'),
+                : Icon(
+                    hasInvalidQuestions ? Icons.block : Icons.publish,
+                  ),
+              label: Text(
+                provider.isSaving 
+                  ? 'Publishing...' 
+                  : hasInvalidQuestions 
+                    ? 'Fix Questions to Publish' 
+                    : 'Publish Test'
+              ),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: hasInvalidQuestions 
+                  ? Colors.grey 
+                  : null,
               ),
             ),
           ),
@@ -482,6 +537,22 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
   }
 
   Future<void> _publishTest(BuildContext context, TestProvider provider) async {
+    // Check for questions without correct answers
+    final invalidQuestions = provider.questions.where((q) => !q.hasValidCorrectAnswer).toList();
+    
+    if (invalidQuestions.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cannot publish test: ${invalidQuestions.length} question${invalidQuestions.length == 1 ? '' : 's'} ${invalidQuestions.length == 1 ? 'has' : 'have'} no correct answer selected. Please fix these questions first.',
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+    
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
@@ -528,6 +599,96 @@ class _TestPreviewStepState extends State<TestPreviewStep> {
         }
       }
     }
+  }
+
+  Widget _buildValidationWarnings(BuildContext context, List<Question> questions) {
+    final invalidQuestions = questions.where((q) => !q.hasValidCorrectAnswer).toList();
+    
+    if (invalidQuestions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          border: Border.all(color: Colors.red.shade300),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Colors.red.shade700,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Test Validation Issues',
+                    style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${invalidQuestions.length} question${invalidQuestions.length == 1 ? '' : 's'} ${invalidQuestions.length == 1 ? 'has' : 'have'} no correct answer selected:',
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...invalidQuestions.asMap().entries.map((entry) {
+              final index = questions.indexOf(entry.value) + 1;
+              final question = entry.value;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  '• Question $index: ${question.text.length > 50 ? '${question.text.substring(0, 50)}...' : question.text}',
+                  style: TextStyle(
+                    color: Colors.red.shade600,
+                    fontSize: 14,
+                  ),
+                ),
+              );
+            }).toList(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_outlined,
+                  color: Colors.orange.shade700,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Students will score 0% on these questions. Please go back and select correct answers.',
+                    style: TextStyle(
+                      color: Colors.orange.shade700,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   String _formatDateTime(DateTime dateTime) {

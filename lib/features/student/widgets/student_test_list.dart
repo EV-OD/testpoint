@@ -61,45 +61,90 @@ class StudentTestList extends StatelessWidget {
             ? studentProvider.completedTests 
             : studentProvider.pendingTests;
 
-        if (tests.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isCompletedTab ? Icons.task : Icons.pending_actions,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No ${isCompletedTab ? 'completed' : 'pending'} tests',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                if (!isCompletedTab) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your upcoming tests will appear here',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          );
-        }
-
         return RefreshIndicator(
           onRefresh: () => studentProvider.refreshTests(),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: tests.length,
-            itemBuilder: (context, index) {
-              final test = tests[index];
-              return _buildTestCard(context, test, studentProvider);
-            },
-          ),
+          child: tests.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              isCompletedTab ? Icons.task : Icons.pending_actions,
+                              size: 64,
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No ${isCompletedTab ? 'completed' : 'pending'} tests',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            if (!isCompletedTab) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Your upcoming tests will appear here',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Pull down to refresh',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: () => studentProvider.refreshTests(),
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Refresh'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 16),
+                              Text(
+                                'Pull down to refresh',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: () => studentProvider.refreshTests(),
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Refresh'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: tests.length,
+                  itemBuilder: (context, index) {
+                    final test = tests[index];
+                    return _buildTestCard(context, test, studentProvider);
+                  },
+                ),
         );
       },
     );

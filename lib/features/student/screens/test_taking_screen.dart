@@ -30,6 +30,7 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
   List<Question> _questions = [];
   bool _isLoadingQuestions = true;
   String? _questionsErrorMessage;
+  bool _isSubmitting = false; // Add this loading state
 
   @override
   void initState() {
@@ -193,7 +194,26 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
             ),
           ],
         ),
-        body: Column(
+        body: _questions.isEmpty 
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.quiz_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No questions available',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Please contact your teacher',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          : Column(
           children: [
             _buildProgressBar(),
             Expanded(
@@ -218,7 +238,7 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
   }
 
   Widget _buildProgressBar() {
-    final progress = (_currentQuestionIndex + 1) / _questions.length;
+    final progress = _questions.isEmpty ? 0.0 : (_currentQuestionIndex + 1) / _questions.length;
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -367,7 +387,7 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
 
   Widget _buildNavigationBar() {
     final isFirstQuestion = _currentQuestionIndex == 0;
-    final isLastQuestion = _currentQuestionIndex == _questions.length - 1;
+    final isLastQuestion = _questions.isEmpty || _currentQuestionIndex == _questions.length - 1;
     
     return Container(
       padding: const EdgeInsets.all(20),
@@ -406,7 +426,9 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
           if (!isFirstQuestion && !isLastQuestion) const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
-              onPressed: isLastQuestion ? _submitTest : _nextQuestion,
+              onPressed: _isSubmitting 
+                  ? null 
+                  : (isLastQuestion ? _submitTest : _nextQuestion),
               style: ElevatedButton.styleFrom(
                 backgroundColor: isLastQuestion 
                     ? Colors.green 
@@ -420,12 +442,25 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(isLastQuestion ? 'Submit Test' : 'Next'),
-                  const SizedBox(width: 8),
-                  Icon(
-                    isLastQuestion ? Icons.send : Icons.arrow_forward,
-                    size: 18,
-                  ),
+                  if (_isSubmitting && isLastQuestion) ...[
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Submitting...'),
+                  ] else ...[
+                    Text(isLastQuestion ? 'Submit Test' : 'Next'),
+                    const SizedBox(width: 8),
+                    Icon(
+                      isLastQuestion ? Icons.send : Icons.arrow_forward,
+                      size: 18,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -478,25 +513,51 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
     );
   }
 
-  void _submitTest() {
-    final studentProvider = Provider.of<StudentProvider>(context, listen: false);
-    final score = _calculateScore();
-    studentProvider.submitTest(widget.test, _questions, _selectedAnswers, score).then((_) {
-      context.go(AppRoutes.testResults, extra: {
-        'test': widget.test,
-        'questions': _questions,
-        'answers': _selectedAnswers,
-        'score': score,
-      });
+  void _submitTest() async {
+    if (_isSubmitting) return; // Prevent double submission
+    
+    setState(() {
+      _isSubmitting = true;
     });
+
+    try {
+      final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+      final score = _calculateScore();
+      
+      await studentProvider.submitTest(widget.test, _questions, _selectedAnswers, score);
+      
+      if (mounted) {
+        context.go(AppRoutes.testResults, extra: {
+          'test': widget.test,
+          'questions': _questions,
+          'answers': _selectedAnswers,
+          'score': score,
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit test: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   int _calculateScore() {
     int correct = 0;
     for (int i = 0; i < _questions.length; i++) {
-      // Ensure the question exists and has a correct answer index
-      if (_questions[i].correctAnswerIndex != null && 
-          _selectedAnswers[i] == _questions[i].correctAnswerIndex) {
+      // Ensure the question exists and has a valid correct answer index
+      final correctIndex = _questions[i].correctAnswerIndex;
+      if (correctIndex >= 0 && _selectedAnswers[i] == correctIndex) {
         correct++;
       }
     }
