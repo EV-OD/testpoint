@@ -91,7 +91,13 @@ class TestListView extends StatelessWidget {
             ),
             trailing: _buildTrailingWidget(context, test),
             onTap: () {
-              // TODO: Navigate to test details/results
+              if (test.status == TestStatus.completed) {
+                // Navigate to test results for completed tests
+                onTestAction?.call('view_results', test);
+              } else {
+                // Navigate to test details for other statuses
+                onTestAction?.call('view', test);
+              }
             },
           ),
         );

@@ -21,7 +21,16 @@ class TestResultsScreen extends StatelessWidget {
     if (completedSessions.isNotEmpty) {
       final scores = completedSessions
           .where((s) => s.finalScore != null)
-          .map((s) => (s.finalScore! / s.totalQuestionsCount) * 100)
+          .map((s) {
+            // Check if finalScore seems to be already a percentage (> totalQuestionsCount)
+            if (s.finalScore! > s.totalQuestionsCount) {
+              // finalScore is likely already a percentage
+              return s.finalScore!.toDouble();
+            } else {
+              // finalScore is number of correct answers
+              return (s.finalScore! / s.totalQuestionsCount) * 100;
+            }
+          })
           .toList();
       if (scores.isNotEmpty) {
         averageScore = scores.reduce((a, b) => a + b) / scores.length;
@@ -132,7 +141,9 @@ class TestResultsScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final session = sessions[index];
                       final scorePercentage = session.finalScore != null && session.totalQuestionsCount > 0 
-                          ? (session.finalScore! / session.totalQuestionsCount) * 100 
+                          ? (session.finalScore! > session.totalQuestionsCount 
+                             ? session.finalScore!.toDouble()  // Already a percentage
+                             : (session.finalScore! / session.totalQuestionsCount) * 100)  // Calculate percentage
                           : 0.0;
                       
                       return Card(
@@ -274,7 +285,9 @@ class TestResultsScreen extends StatelessWidget {
 
   void _showSessionDetails(BuildContext context, TestSession session) {
     final scorePercentage = session.finalScore != null && session.totalQuestionsCount > 0 
-        ? (session.finalScore! / session.totalQuestionsCount) * 100 
+        ? (session.finalScore! > session.totalQuestionsCount 
+           ? session.finalScore!.toDouble()  // Already a percentage
+           : (session.finalScore! / session.totalQuestionsCount) * 100)  // Calculate percentage
         : 0.0;
     
     showDialog(
