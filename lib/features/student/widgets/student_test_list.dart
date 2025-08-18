@@ -227,9 +227,12 @@ class StudentTestList extends StatelessWidget {
     Color backgroundColor;
     Color textColor;
     
-    if (status == 'Completed') {
+    if (status == 'Results Available') {
       backgroundColor = Colors.green.withOpacity(0.1);
       textColor = Colors.green[700]!;
+    } else if (status == 'Results Pending') {
+      backgroundColor = Colors.orange.withOpacity(0.1);
+      textColor = Colors.orange[700]!;
     } else if (status == 'Expired') {
       backgroundColor = Colors.red.withOpacity(0.1);
       textColor = Colors.red[700]!;
@@ -260,11 +263,23 @@ class StudentTestList extends StatelessWidget {
 
   Widget? _buildActionButton(BuildContext context, Test test, bool isAvailable, bool isCompletedTab) {
     if (isCompletedTab) {
-      return Icon(
-        Icons.check_circle,
-        color: Colors.green[600],
-        size: 28,
-      );
+      // If test is completed by teacher, results are always available
+      // If test is published, check time-based availability
+      bool resultsAvailable = test.status == TestStatus.completed || test.areResultsAvailable;
+      
+      if (resultsAvailable) {
+        return Icon(
+          Icons.visibility,
+          color: Colors.green[600],
+          size: 28,
+        );
+      } else {
+        return Icon(
+          Icons.schedule,
+          color: Colors.orange[600],
+          size: 28,
+        );
+      }
     }
 
     if (!isAvailable) {
@@ -308,11 +323,121 @@ class StudentTestList extends StatelessWidget {
     return '$hour:$minute';
   }
 
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final testDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    
+    String timeStr = _formatTime(dateTime);
+    
+    if (testDate == today) {
+      return 'Today $timeStr';
+    } else if (testDate == today.add(const Duration(days: 1))) {
+      return 'Tomorrow $timeStr';
+    } else if (testDate == today.subtract(const Duration(days: 1))) {
+      return 'Yesterday $timeStr';
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year} $timeStr';
+    }
+  }
+
+  String _formatTimeRemaining(DateTime endTime) {
+    final now = DateTime.now();
+    final remaining = endTime.difference(now);
+    
+    if (remaining.isNegative) {
+      return 'Test time ended';
+    }
+    
+    if (remaining.inDays > 0) {
+      return '${remaining.inDays} day(s) ${remaining.inHours % 24} hour(s)';
+    } else if (remaining.inHours > 0) {
+      return '${remaining.inHours} hour(s) ${remaining.inMinutes % 60} minute(s)';
+    } else {
+      return '${remaining.inMinutes} minute(s)';
+    }
+  }
+
   void _navigateToTestInstructions(BuildContext context, Test test) {
     context.go(AppRoutes.testInstructions, extra: test);
   }
 
   void _navigateToTestResults(BuildContext context, Test test) async {
+    // Check if results are available based on test status and time
+    // If test is completed by teacher, results are always available
+    // If test is published, check time-based availability
+    bool resultsAvailable = test.status == TestStatus.completed || test.areResultsAvailable;
+    
+    if (!resultsAvailable) {
+      // Show message that results aren't available yet
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.schedule,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 12),
+              const Text('Results Not Available'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Test results will be available after the test time period ends for all students.',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Test Details:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'End Time: ${_formatDateTime(test.testEndTime)}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    Text(
+                      'Time Remaining: ${_formatTimeRemaining(test.testEndTime)}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     try {
       final studentProvider = Provider.of<StudentProvider>(context, listen: false);
       

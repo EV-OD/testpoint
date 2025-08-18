@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:testpoint/models/test_model.dart';
-import 'package:testpoint/models/user_model.dart';
 import 'package:testpoint/services/test_service.dart';
 import 'package:testpoint/services/group_service.dart';
 import 'package:testpoint/models/test_session_model.dart';
-
 import 'package:testpoint/models/question_model.dart';
 
 class StudentProvider extends ChangeNotifier {
@@ -38,8 +36,6 @@ class StudentProvider extends ChangeNotifier {
 
   // Get pending tests (available and not yet taken)
   List<Test> get pendingTests {
-    final now = DateTime.now();
-    
     final filtered = _availableTests.where((test) {
       // Show published tests that are not expired
       // This includes both current tests and future scheduled tests
@@ -219,10 +215,18 @@ class StudentProvider extends ChangeNotifier {
   // Get test status for display
   String getTestStatus(Test test) {
     final now = DateTime.now();
-    final studentId = _auth.currentUser?.uid ?? '';
 
     if (_completedTests.any((t) => t.id == test.id)) {
-      return 'Completed';
+      // If test is completed by teacher, results are always available
+      if (test.status == TestStatus.completed) {
+        return 'Results Available';
+      }
+      // If test is published but time-based, check time availability
+      else if (test.areResultsAvailable) {
+        return 'Results Available';
+      } else {
+        return 'Results Pending';
+      }
     }
 
     if (test.isExpired) {
