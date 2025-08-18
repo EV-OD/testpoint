@@ -11,6 +11,7 @@ import 'package:testpoint/features/teacher/screens/test_details_screen.dart';
 import 'package:testpoint/features/teacher/screens/view_questions_screen.dart';
 import 'package:testpoint/features/teacher/screens/test_results_screen.dart';
 import 'package:testpoint/features/teacher/widgets/test_list_view.dart';
+import 'package:testpoint/features/admin/screens/anti_cheat_config_screen.dart';
 import 'package:testpoint/models/test_model.dart';
 
 class TeacherDashboard extends StatefulWidget {
@@ -129,6 +130,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             tests: tests,
             testStatus: status,
             onTestAction: _handleTestAction,
+            onRefresh: dashboardProvider.refreshTests,
           ),
         );
       },
@@ -300,6 +302,22 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             );
           }
         }
+        break;
+      case 'configure_anti_cheat':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AntiCheatConfigScreen(
+              test: test,
+              onConfigSaved: (config) {
+                // Refresh the test data after configuration is saved
+                final dashboardProvider = Provider.of<TeacherDashboardProvider>(context, listen: false);
+                dashboardProvider.refreshTests();
+                // Note: Navigation is handled by the AntiCheatConfigScreen itself
+              },
+            ),
+          ),
+        );
         break;
     }
     } catch (e) {

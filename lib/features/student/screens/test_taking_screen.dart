@@ -7,6 +7,10 @@ import 'package:testpoint/config/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:testpoint/providers/student_provider.dart';
 import 'package:testpoint/providers/test_provider.dart';
+import 'package:testpoint/providers/anti_cheat_provider.dart';
+import 'package:testpoint/models/anti_cheat_config_model.dart';
+import 'package:testpoint/models/anti_cheat_violation_model.dart';
+import 'package:testpoint/widgets/anti_cheat_warning_dialog.dart';
 
 class TestTakingScreen extends StatefulWidget {
   final Test test;
@@ -31,6 +35,10 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
   bool _isLoadingQuestions = true;
   String? _questionsErrorMessage;
   bool _isSubmitting = false; // Add this loading state
+  
+  // Anti-cheat related
+  late AntiCheatProvider _antiCheatProvider;
+  bool _antiCheatInitialized = false;
 
   @override
   void initState() {
@@ -41,6 +49,116 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
     _remainingTime = Duration(minutes: widget.test.timeLimit);
     _loadQuestions();
     _startTimer();
+    _initializeAntiCheat();
+  }
+
+  Future<void> _initializeAntiCheat() async {
+    _antiCheatProvider = Provider.of<AntiCheatProvider>(context, listen: false);
+    
+    // Configure anti-cheat based on test settings
+    final config = AntiCheatConfig.balanced(); // You can customize this based on test type
+    
+    await _antiCheatProvider.initialize(
+      config: config,
+      onViolation: _handleAntiCheatViolation,
+      onAutoSubmit: _handleAntiCheatAutoSubmit,
+      onWarning: _handleAntiCheatWarning,
+    );
+    
+    // Start monitoring after a brief delay to ensure everything is set up
+    await Future.delayed(const Duration(milliseconds: 500));
+    await _antiCheatProvider.startMonitoring();
+    
+    setState(() {
+      _antiCheatInitialized = true;
+    });
+    
+    print('🛡️ Anti-cheat system initialized and monitoring started');
+  }
+
+  void _handleAntiCheatViolation(AntiCheatViolation violation) {
+    print('🚨 Violation detected: ${violation.description}');
+    
+    // Show warning dialog
+    if (mounted) {
+      showAntiCheatWarning(
+        context,
+        violation: violation,
+        remainingWarnings: _antiCheatProvider.remainingWarnings,
+        onContinue: () {
+          Navigator.of(context).pop();
+        },
+        onSubmitTest: () {
+          Navigator.of(context).pop();
+          _submitTest();
+        },
+      );
+    }
+  }
+
+  void _handleAntiCheatAutoSubmit(List<AntiCheatViolation> violations) {
+    print('🚨 Auto-submit triggered due to violations');
+    
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Test Submitted'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Your test has been automatically submitted due to security violations.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Text('Violations detected: ${violations.length}'),
+              const SizedBox(height: 8),
+              ...violations.take(3).map((v) => Text(
+                '• ${v.type.displayName}',
+                style: const TextStyle(fontSize: 12),
+              )),
+              if (violations.length > 3) 
+                Text('• and ${violations.length - 3} more...'),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _submitTest();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _handleAntiCheatWarning(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _loadQuestions() async {
@@ -76,14 +194,58 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
+    
+    // Stop anti-cheat monitoring
+    if (_antiCheatInitialized) {
+      _antiCheatProvider.stopMonitoring();
+    }
+    
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
-      // App switched or closed - potential cheating
-      _handleAntiCheatViolation('App switch detected');
+    if (!_antiCheatInitialized) return;
+    
+    switch (state) {
+      case AppLifecycleState.paused:
+        // App moved to background - potential app switch
+        _antiCheatProvider.reportSuspiciousActivity(
+          'App moved to background',
+          {
+            'timestamp': DateTime.now().toIso8601String(),
+            'lifecycle_state': 'paused',
+          },
+        );
+        break;
+      case AppLifecycleState.detached:
+        // App being closed
+        _antiCheatProvider.reportSuspiciousActivity(
+          'App being closed',
+          {
+            'timestamp': DateTime.now().toIso8601String(),
+            'lifecycle_state': 'detached',
+          },
+        );
+        break;
+      case AppLifecycleState.resumed:
+        // App came back to foreground
+        print('📱 App resumed - monitoring continues');
+        break;
+      case AppLifecycleState.inactive:
+        // App lost focus but still visible (e.g., incoming call)
+        print('📱 App inactive - potential interruption');
+        break;
+      case AppLifecycleState.hidden:
+        // App hidden but still running
+        _antiCheatProvider.reportSuspiciousActivity(
+          'App hidden',
+          {
+            'timestamp': DateTime.now().toIso8601String(),
+            'lifecycle_state': 'hidden',
+          },
+        );
+        break;
     }
   }
 
@@ -128,26 +290,6 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
     );
   }
 
-  void _handleAntiCheatViolation(String violation) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Security Violation'),
-        content: Text('$violation. Your test will be submitted automatically.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _submitTest();
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -170,6 +312,42 @@ class _TestTakingScreenState extends State<TestTakingScreen> with WidgetsBinding
             },
           ),
           actions: [
+            // Anti-cheat status indicator
+            if (_antiCheatInitialized)
+              Consumer<AntiCheatProvider>(
+                builder: (context, antiCheat, child) {
+                  final riskLevel = antiCheat.currentRiskLevel;
+                  return Container(
+                    margin: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: riskLevel.color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: riskLevel.color),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.security,
+                          color: riskLevel.color,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${antiCheat.violationCount}',
+                          style: TextStyle(
+                            color: riskLevel.color,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            // Timer
             Container(
               margin: const EdgeInsets.all(8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

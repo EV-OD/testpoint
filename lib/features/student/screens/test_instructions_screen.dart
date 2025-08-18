@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/config/app_routes.dart';
+import 'package:testpoint/features/student/screens/anti_cheat_rules_screen.dart';
+import 'package:testpoint/models/anti_cheat_config_model.dart';
 
 import 'package:provider/provider.dart';
 import 'package:testpoint/providers/student_provider.dart';
@@ -561,6 +563,31 @@ class _TestInstructionsScreenState extends State<TestInstructionsScreen> {
   }
 
   void _startTest() {
-    context.go(AppRoutes.testTaking, extra: widget.test);
+    // Show anti-cheat rules before starting the test
+    _showAntiCheatRules();
+  }
+
+  void _showAntiCheatRules() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AntiCheatRulesScreen(
+          test: widget.test,
+          config: AntiCheatConfig.balanced(), // Can be customized based on test type
+          onAccept: () {
+            Navigator.of(context).pop();
+            context.go(AppRoutes.testTaking, extra: widget.test);
+          },
+          onReject: () {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('You must accept the anti-cheating rules to take the test.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }

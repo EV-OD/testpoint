@@ -9,6 +9,7 @@ import 'package:testpoint/providers/test_provider.dart';
 import 'package:testpoint/providers/teacher_dashboard_provider.dart';
 import 'package:testpoint/providers/student_provider.dart';
 import 'package:testpoint/providers/student_statistics_provider.dart';
+import 'package:testpoint/providers/anti_cheat_provider.dart';
 import 'package:testpoint/routing/app_router.dart';
 
 void main() async {
@@ -45,6 +46,9 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => StudentStatisticsProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => AntiCheatProvider(),
         ),
       ],
       child: Builder(

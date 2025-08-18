@@ -5,12 +5,14 @@ class TestListView extends StatelessWidget {
   final List<Test> tests;
   final TestStatus testStatus;
   final Function(String action, Test test)? onTestAction;
+  final VoidCallback? onRefresh;
 
   const TestListView({
     super.key,
     required this.tests,
     required this.testStatus,
     this.onTestAction,
+    this.onRefresh,
   });
 
   @override
@@ -39,6 +41,20 @@ class TestListView extends StatelessWidget {
                 ),
               ),
             ],
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ],
         ),
       );
@@ -234,6 +250,16 @@ class TestListView extends StatelessWidget {
                 ),
               ),
             const PopupMenuItem(
+              value: 'configure_anti_cheat',
+              child: Row(
+                children: [
+                  Icon(Icons.security, size: 16),
+                  SizedBox(width: 8),
+                  Text('Configure Anti-Cheat'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
               value: 'delete',
               child: Row(
                 children: [
@@ -268,6 +294,16 @@ class TestListView extends StatelessWidget {
                   Icon(Icons.analytics, size: 16),
                   SizedBox(width: 8),
                   Text('View Results'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'configure_anti_cheat',
+              child: Row(
+                children: [
+                  Icon(Icons.security, size: 16),
+                  SizedBox(width: 8),
+                  Text('Configure Anti-Cheat'),
                 ],
               ),
             ),

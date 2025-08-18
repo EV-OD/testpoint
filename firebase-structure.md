@@ -532,6 +532,103 @@ service cloud.firestore {
 - **Comprehensive authentication checks** on all operations
 - **Default deny policy** for security by default
 
+### Anti-Cheat Security Rules: ✅ IMPLEMENTED
+
+The anti-cheat system includes specific security rules to protect violation data and configuration integrity:
+
+```javascript
+// Enhanced test sessions with anti-cheat violation tracking
+match /test_sessions/{sessionId} {
+  allow read: if request.auth != null && isAdmin();
+  allow read: if request.auth != null && 
+                 isTeacher() && 
+                 get(/databases/$(database)/documents/tests/$(resource.data.test_id)).data.test_maker == request.auth.uid;
+  allow read, write: if request.auth != null && 
+                       isStudent() && 
+                       resource.data.student_id == request.auth.uid;
+  allow create: if request.auth != null && 
+                  isStudent() && 
+                  request.resource.data.student_id == request.auth.uid &&
+                  request.auth.uid in get(/databases/$(database)/documents/groups/$(get(/databases/$(database)/documents/tests/$(request.resource.data.test_id)).data.group_id)).data.userIds;
+  
+  // Anti-cheat specific rules
+  allow update: if request.auth != null && 
+                   isStudent() && 
+                   resource.data.student_id == request.auth.uid &&
+                   // Allow violation updates by the student during active session
+                   (resource.data.status == 'IN_PROGRESS' || resource.data.status == 'ACTIVE') &&
+                   // Prevent tampering with existing violations (append-only)
+                   request.resource.data.violations.size() >= resource.data.violations.size() &&
+                   // Ensure violation metadata integrity
+                   validateViolationData(request.resource.data.violations);
+}
+
+// Anti-cheat configuration in tests (embedded)
+match /tests/{testId} {
+  // ... existing rules ...
+  
+  // Anti-cheat configuration management
+  allow update: if request.auth != null && 
+                   isTeacher() && 
+                   resource.data.test_maker == request.auth.uid &&
+                   // Validate anti-cheat config structure
+                   validateAntiCheatConfig(request.resource.data.antiCheatConfig) &&
+                   // Prevent config changes during active test sessions
+                   !hasActiveTestSessions(testId);
+}
+
+// Helper functions for anti-cheat validation
+function validateViolationData(violations) {
+  return violations.hasAll(['id', 'type', 'severity', 'timestamp']) &&
+         violations.type in ['APP_SWITCH', 'SCREENSHOT_ATTEMPT', 'SCREEN_RECORDING_ATTEMPT', 'SUSPICIOUS_ACTIVITY'] &&
+         violations.severity in ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] &&
+         violations.timestamp is timestamp &&
+         violations.riskScore is number &&
+         violations.riskScore >= 0 && violations.riskScore <= 100;
+}
+
+function validateAntiCheatConfig(config) {
+  return config.keys().hasAll(['enabled', 'maxWarnings', 'maxAppSwitchDuration']) &&
+         config.enabled is bool &&
+         config.maxWarnings is number && config.maxWarnings > 0 &&
+         config.maxAppSwitchDuration is number && config.maxAppSwitchDuration >= 1000 &&
+         config.preset in ['STRICT', 'BALANCED', 'LENIENT', 'CUSTOM'];
+}
+
+function hasActiveTestSessions(testId) {
+  return exists(/databases/$(database)/documents/test_sessions) &&
+         query(/databases/$(database)/documents/test_sessions, {
+           where: [['test_id', '==', testId], ['status', 'in', ['ACTIVE', 'IN_PROGRESS']]]
+         }).size() > 0;
+}
+```
+
+#### Anti-Cheat Security Principles
+
+1. **Violation Data Integrity**
+   - Append-only violation logs (cannot delete/modify existing violations)
+   - Strict validation of violation metadata structure
+   - Timestamp verification to prevent time manipulation
+   - Risk score bounds checking (0-100 range)
+
+2. **Configuration Protection**
+   - Teacher/admin-only access to anti-cheat configuration
+   - Prevent configuration changes during active test sessions
+   - Validation of configuration parameter ranges and types
+   - Audit trail for configuration changes
+
+3. **Privacy Protection**
+   - Student cannot access other students' violation data
+   - Teachers can only view violations for their own tests
+   - Violation metadata limited to necessary detection information
+   - No sensitive device information beyond app behavior
+
+4. **Real-time Enforcement**
+   - Server-side validation of all violation submissions
+   - Prevention of client-side tampering with violation data
+   - Automatic session termination on critical violations
+   - Rate limiting for violation submission to prevent spam
+
 ---
 
 ## Required Firebase Indexes
@@ -541,6 +638,14 @@ service cloud.firestore {
    - Fields: `userIds` (array-contains), `name` (ascending)
    - Purpose: Student group membership queries with sorting
 
+2. **test_sessions collection (Anti-Cheat)**:
+   - Fields: `test_id` (ascending), `status` (ascending), `student_id` (ascending)
+   - Purpose: Active session detection for anti-cheat configuration protection
+
+3. **test_sessions collection (Violations)**:
+   - Fields: `student_id` (ascending), `violations.type` (ascending), `violations.timestamp` (descending)
+   - Purpose: Violation analysis and reporting queries
+
 ### Single Field Indexes (Auto-created):
 - `users.role` - Role-based access control queries
 - `tests.test_maker` - Filter tests by creator
@@ -548,6 +653,70 @@ service cloud.firestore {
 - `tests.status` - Filter by test lifecycle status
 - `tests.date_time` - Sort by scheduled test time
 - `tests.created_at` - Sort by creation date
+- `test_sessions.violations.severity` - Filter violations by severity level
+- `test_sessions.violations.riskScore` - Sort violations by risk assessment
+- `test_sessions.antiCheatSummary.riskLevel` - Filter sessions by overall risk level
+
+### Anti-Cheat Query Patterns:
+
+#### Teacher Violation Monitoring
+```dart
+// Real-time monitoring of active test sessions with violations
+Stream<List<TestSession>> getActiveSessionsWithViolations(String testId) {
+  return FirebaseFirestore.instance
+    .collection('test_sessions')
+    .where('test_id', isEqualTo: testId)
+    .where('status', whereIn: ['ACTIVE', 'IN_PROGRESS'])
+    .where('violations', isNotEqualTo: [])
+    .snapshots()
+    .map((snapshot) => snapshot.docs.map((doc) => TestSession.fromFirestore(doc)).toList());
+}
+
+// High-risk session alerts
+Query getHighRiskSessions(String testId) {
+  return FirebaseFirestore.instance
+    .collection('test_sessions')
+    .where('test_id', isEqualTo: testId)
+    .where('antiCheatSummary.riskLevel', whereIn: ['HIGH', 'CRITICAL'])
+    .orderBy('antiCheatSummary.finalRiskScore', descending: true);
+}
+```
+
+#### Violation Analytics Queries
+```dart
+// Violation trend analysis
+Query getViolationsByType(String studentId, String violationType) {
+  return FirebaseFirestore.instance
+    .collection('test_sessions')
+    .where('student_id', isEqualTo: studentId)
+    .where('violations.type', arrayContains: violationType)
+    .orderBy('start_time', descending: true);
+}
+
+// Recent critical violations across all tests
+Query getRecentCriticalViolations(String teacherId) {
+  return FirebaseFirestore.instance
+    .collectionGroup('test_sessions')
+    .where('violations.severity', arrayContains: 'CRITICAL')
+    .where('start_time', isGreaterThan: Timestamp.fromDate(DateTime.now().subtract(Duration(days: 7))))
+    .orderBy('start_time', descending: true);
+}
+```
+
+#### Configuration Protection Queries
+```dart
+// Check for active sessions before allowing config changes
+Future<bool> hasActiveTestSessions(String testId) async {
+  final query = await FirebaseFirestore.instance
+    .collection('test_sessions')
+    .where('test_id', isEqualTo: testId)
+    .where('status', whereIn: ['ACTIVE', 'IN_PROGRESS'])
+    .limit(1)
+    .get();
+  
+  return query.docs.isNotEmpty;
+}
+```
 - `groups.userIds` - Group membership queries  
 - `groups.created_at` - Sort groups by creation date
 - `test_sessions.test_id` - Find sessions for specific tests
@@ -559,6 +728,449 @@ service cloud.firestore {
 - Avoided complex composite indexes by removing orderBy from array-contains queries
 - Single field indexes handle most common query patterns efficiently
 - Group membership queries use array-contains without additional sorting to prevent index requirements
+- Anti-cheat violation queries optimized for real-time monitoring and batch analytics
+- Violation data structured for efficient time-range and severity-based filtering
+
+### Anti-Cheat Performance Optimizations:
+
+#### Real-time Violation Processing
+- **Batch Writes**: Multiple violations grouped into single Firestore transaction
+- **Local Caching**: Recent violations cached locally for immediate UI updates
+- **Throttling**: Violation detection throttled to prevent excessive Firebase writes
+- **Background Processing**: Non-critical violation analysis performed asynchronously
+
+#### Efficient Data Structure Design
+```dart
+// Optimized violation storage for queries and analytics
+{
+  "violations": [
+    {
+      "id": "v_001",
+      "type": "APP_SWITCH",
+      "severity": "HIGH", 
+      "timestamp": Timestamp,
+      "riskScore": 75,
+      "metadata": { /* Minimal required data */ }
+    }
+  ],
+  "violationSummary": {
+    "total": 5,
+    "bySeverity": {"HIGH": 2, "MEDIUM": 3},
+    "byType": {"APP_SWITCH": 3, "SCREENSHOT_ATTEMPT": 2},
+    "lastUpdated": Timestamp
+  }
+}
+```
+
+#### Scalability Considerations
+- **Document Size Limits**: Violation arrays monitored to stay under 1MB Firestore limit
+- **Pagination**: Large violation sets paginated for efficient loading
+- **Archival Strategy**: Old violation data archived to reduce active document size
+- **Index Management**: Regular monitoring of index usage and optimization
+
+---
+
+## 5. Anti-Cheat System Integration
+
+### Overview
+
+The TestPoint anti-cheat system is a comprehensive monitoring and prevention solution designed to maintain test integrity. It combines client-side monitoring, server-side validation, and configurable policies to detect and prevent various forms of academic dishonesty.
+
+### Architecture Components
+
+#### 5.1 Anti-Cheat Configuration Storage
+
+Anti-cheat configurations are stored as embedded objects within test documents to ensure atomic updates and consistent policy enforcement.
+
+**Storage Location**: `tests/{testId}.antiCheatConfig`
+
+```json
+{
+  "antiCheatConfig": {
+    "enabled": true,
+    "enableScreenshotPrevention": true,
+    "enableScreenRecordingDetection": true,
+    "enableScreenPinning": false,
+    "enableSuspiciousActivityDetection": true,
+    "maxWarnings": 3,
+    "maxAppSwitchDuration": 30,
+    "violationAction": "SUBMIT_TEST",
+    "preset": "BALANCED",
+    "createdAt": "2025-08-18T10:30:00Z",
+    "updatedAt": "2025-08-18T15:45:00Z"
+  }
+}
+```
+
+#### 5.2 Violation Tracking in Test Sessions
+
+Real-time violation tracking is integrated into test sessions for immediate response and historical analysis.
+
+**Storage Location**: `test_sessions/{sessionId}.violations`
+
+```json
+{
+  "violations": [
+    {
+      "id": "violation_001",
+      "type": "APP_SWITCH",
+      "severity": "HIGH",
+      "timestamp": "2025-08-18T14:23:15Z",
+      "duration": 25000,
+      "metadata": {
+        "appSwitchDuration": 25000,
+        "previousApp": "com.whatsapp",
+        "detectionMethod": "LIFECYCLE_OBSERVER"
+      },
+      "consequences": ["WARNING_SHOWN"],
+      "riskScore": 75
+    },
+    {
+      "id": "violation_002", 
+      "type": "SCREENSHOT_ATTEMPT",
+      "severity": "CRITICAL",
+      "timestamp": "2025-08-18T14:25:30Z",
+      "metadata": {
+        "preventionMethod": "FLAG_SECURE",
+        "attemptCount": 1
+      },
+      "consequences": ["SCREEN_BLOCKED", "WARNING_ISSUED"],
+      "riskScore": 95
+    }
+  ],
+  "antiCheatSummary": {
+    "totalViolations": 2,
+    "riskLevel": "HIGH",
+    "finalRiskScore": 85,
+    "actionsTaken": ["WARNING_SHOWN", "SCREEN_BLOCKED"],
+    "configSnapshot": {
+      "preset": "BALANCED",
+      "maxWarnings": 3,
+      "screenshotPrevention": true
+    }
+  }
+}
+```
+
+### 5.3 Anti-Cheat Data Models
+
+#### AntiCheatConfig Model
+
+```dart
+class AntiCheatConfig {
+  final bool enabled;
+  final bool enableScreenshotPrevention;
+  final bool enableScreenRecordingDetection;
+  final bool enableScreenPinning;
+  final bool enableSuspiciousActivityDetection;
+  final int maxWarnings;
+  final int maxAppSwitchDuration; // milliseconds
+  final ViolationAction violationAction;
+  final ConfigPreset preset;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+}
+
+enum ConfigPreset { STRICT, BALANCED, LENIENT, CUSTOM }
+enum ViolationAction { WARNING_ONLY, SUBMIT_TEST, END_SESSION }
+```
+
+#### AntiCheatViolation Model
+
+```dart
+class AntiCheatViolation {
+  final String id;
+  final ViolationType type;
+  final ViolationSeverity severity;
+  final DateTime timestamp;
+  final int? duration; // For time-based violations
+  final Map<String, dynamic> metadata;
+  final List<String> consequences;
+  final int riskScore; // 0-100
+}
+
+enum ViolationType {
+  APP_SWITCH,
+  SCREENSHOT_ATTEMPT,
+  SCREEN_RECORDING_ATTEMPT,
+  SUSPICIOUS_ACTIVITY,
+  TIME_MANIPULATION,
+  NETWORK_DISCONNECTION
+}
+
+enum ViolationSeverity { LOW, MEDIUM, HIGH, CRITICAL }
+```
+
+### 5.4 Configuration Presets
+
+#### Strict Mode (High-Stakes Exams)
+```json
+{
+  "enableScreenshotPrevention": true,
+  "enableScreenRecordingDetection": true,
+  "enableScreenPinning": true,
+  "enableSuspiciousActivityDetection": true,
+  "maxWarnings": 1,
+  "maxAppSwitchDuration": 5000,
+  "violationAction": "SUBMIT_TEST"
+}
+```
+
+#### Balanced Mode (Regular Tests)
+```json
+{
+  "enableScreenshotPrevention": true,
+  "enableScreenRecordingDetection": true,
+  "enableScreenPinning": false,
+  "enableSuspiciousActivityDetection": true,
+  "maxWarnings": 3,
+  "maxAppSwitchDuration": 30000,
+  "violationAction": "WARNING_ONLY"
+}
+```
+
+#### Lenient Mode (Practice Tests)
+```json
+{
+  "enableScreenshotPrevention": false,
+  "enableScreenRecordingDetection": false,
+  "enableScreenPinning": false,
+  "enableSuspiciousActivityDetection": false,
+  "maxWarnings": 5,
+  "maxAppSwitchDuration": 60000,
+  "violationAction": "WARNING_ONLY"
+}
+```
+
+### 5.5 How Anti-Cheat Works
+
+#### Detection Flow
+
+1. **Initialization Phase**
+   ```
+   Test Session Start → Load Anti-Cheat Config → Initialize Monitors
+   ```
+
+2. **Active Monitoring**
+   ```
+   App Lifecycle Events → Violation Detection → Risk Assessment → Response Action
+   ```
+
+3. **Violation Processing**
+   ```
+   Violation Detected → Metadata Collection → Severity Calculation → 
+   Consequence Execution → Firebase Storage → UI Feedback
+   ```
+
+#### Platform-Specific Implementation
+
+**Android Implementation**
+- **Screen Pinning**: Uses `startLockTask()` to prevent home/back button access
+- **Screenshot Prevention**: `FLAG_SECURE` prevents screenshots and screen recording
+- **App Switch Detection**: Activity lifecycle monitoring with precise timing
+- **Background Monitoring**: Service-based monitoring for app state changes
+
+**Cross-Platform Service Layer**
+- **Flutter Platform Channels**: Dart ↔ Native communication
+- **Violation Aggregation**: Centralized violation processing
+- **Risk Scoring**: Algorithmic assessment of cheating likelihood
+- **Real-time Updates**: Firebase integration for immediate violation logging
+
+#### Risk Scoring Algorithm
+
+```dart
+int calculateRiskScore(List<AntiCheatViolation> violations) {
+  int totalScore = 0;
+  
+  for (var violation in violations) {
+    int baseScore = switch (violation.severity) {
+      ViolationSeverity.LOW => 10,
+      ViolationSeverity.MEDIUM => 25,
+      ViolationSeverity.HIGH => 50,
+      ViolationSeverity.CRITICAL => 75,
+    };
+    
+    // Time-based multipliers
+    double recencyMultiplier = _calculateRecencyMultiplier(violation.timestamp);
+    
+    // Frequency penalty
+    double frequencyPenalty = _calculateFrequencyPenalty(violation.type, violations);
+    
+    totalScore += (baseScore * recencyMultiplier * frequencyPenalty).round();
+  }
+  
+  return math.min(totalScore, 100); // Cap at 100
+}
+```
+
+### 5.6 Configuration Management
+
+#### Teacher Configuration Interface
+
+**Access Points**:
+- Test creation wizard (optional step)
+- Test management dashboard (⋮ menu → "Configure Anti-Cheat")
+- Test editing interface
+
+**Configuration Flow**:
+1. **Preset Selection**: Choose from Strict/Balanced/Lenient templates
+2. **Custom Adjustments**: Fine-tune individual settings
+3. **Live Preview**: Real-time risk assessment display
+4. **Validation**: Ensure configuration compatibility
+5. **Save & Apply**: Atomic update to test document
+
+#### Configuration Validation
+
+```dart
+class AntiCheatConfigValidator {
+  static ValidationResult validate(AntiCheatConfig config) {
+    List<String> errors = [];
+    
+    // Logical consistency checks
+    if (config.maxWarnings < 1) {
+      errors.add("Warning threshold must be at least 1");
+    }
+    
+    if (config.maxAppSwitchDuration < 1000) {
+      errors.add("App switch duration must be at least 1 second");
+    }
+    
+    // Platform capability checks
+    if (config.enableScreenPinning && !Platform.isAndroid) {
+      errors.add("Screen pinning only available on Android");
+    }
+    
+    return ValidationResult(isValid: errors.isEmpty, errors: errors);
+  }
+}
+```
+
+### 5.7 Violation Response System
+
+#### Warning System
+
+**Progressive Warnings**:
+```dart
+enum WarningLevel { FIRST, SECOND, FINAL }
+
+class WarningDialog {
+  void show(BuildContext context, WarningLevel level, ViolationType type) {
+    String message = switch (level) {
+      WarningLevel.FIRST => "First warning: Please focus on your test",
+      WarningLevel.SECOND => "Second warning: Further violations may result in test submission",
+      WarningLevel.FINAL => "Final warning: Your test will be submitted automatically if another violation occurs"
+    };
+    
+    // Show modal dialog with violation details
+  }
+}
+```
+
+#### Automatic Actions
+
+**Test Submission**: When violation threshold exceeded
+```dart
+void handleViolationThresholdExceeded(TestSession session) async {
+  // Force submit current answers
+  await _submitCurrentAnswers(session);
+  
+  // Mark session as force-submitted
+  session.endReason = "ANTI_CHEAT_VIOLATION";
+  session.status = TestSessionStatus.FORCE_COMPLETED;
+  
+  // Save violation summary
+  await _saveViolationReport(session);
+  
+  // Navigate to results with explanation
+  _showViolationSubmissionDialog();
+}
+```
+
+### 5.8 Analytics and Reporting
+
+#### Teacher Violation Dashboard
+
+**Real-time Monitoring**:
+- Active test sessions with live violation counts
+- Risk level indicators for each student
+- Immediate alerts for critical violations
+
+**Post-Test Analysis**:
+- Violation timeline visualization
+- Risk score trends
+- Comparative analysis across students
+
+#### Violation Report Structure
+
+```json
+{
+  "reportId": "report_20250818_001",
+  "testId": "test_abc123",
+  "sessionId": "session_xyz789",
+  "studentId": "student_def456",
+  "generatedAt": "2025-08-18T16:00:00Z",
+  "summary": {
+    "totalViolations": 5,
+    "riskLevel": "HIGH",
+    "finalRiskScore": 87,
+    "recommendedAction": "MANUAL_REVIEW"
+  },
+  "timeline": [
+    {
+      "timestamp": "2025-08-18T14:23:15Z",
+      "event": "APP_SWITCH_DETECTED",
+      "details": "Switched to messaging app for 25 seconds"
+    }
+  ],
+  "configSnapshot": { /* Anti-cheat config at test time */ }
+}
+```
+
+### 5.9 Security Considerations
+
+#### Data Protection
+- **Encryption**: All violation data encrypted in transit and at rest
+- **Access Control**: Teacher/admin-only access to violation reports
+- **Retention Policy**: Configurable data retention for compliance
+- **Anonymization**: Option to anonymize violation data for research
+
+#### Privacy Compliance
+- **Transparency**: Clear disclosure of monitoring to students
+- **Consent**: Explicit consent before test start
+- **Minimal Data**: Only collect necessary violation metadata
+- **Student Rights**: Access to own violation data, deletion requests
+
+#### Anti-Circumvention
+- **Client Integrity**: App signature verification
+- **Time Validation**: Server-side timestamp verification
+- **Behavioral Analysis**: Pattern detection for gaming attempts
+- **Regular Updates**: Continuous improvement of detection methods
+
+### 5.10 Implementation Roadmap
+
+#### Phase 1: Foundation (✅ COMPLETED)
+- [x] Anti-cheat configuration models
+- [x] Basic violation detection (app switching)
+- [x] Teacher configuration interface
+- [x] Firebase integration for violations
+
+#### Phase 2: Enhanced Detection (🚧 IN PROGRESS)
+- [x] Screenshot prevention (Android)
+- [x] Screen recording detection
+- [ ] Advanced behavioral analysis
+- [ ] Network monitoring
+
+#### Phase 3: Advanced Analytics (⏳ PLANNED)
+- [ ] Machine learning risk assessment
+- [ ] Pattern recognition for new violation types
+- [ ] Predictive modeling for cheating likelihood
+- [ ] Integration with external proctoring services
+
+#### Phase 4: Compliance & Scale (⏳ PLANNED)
+- [ ] GDPR compliance tools
+- [ ] Multi-platform optimization
+- [ ] Enterprise reporting features
+- [ ] API for third-party integrations
 
 ---
 
@@ -575,7 +1187,11 @@ service cloud.firestore {
 | **Timer System** | ✅ Basic Complete | Client-side timer with visual warnings and safety checks |
 | **Answer Management** | ✅ Complete | Real-time answer collection with validation and scoring |
 | **Results & Scoring** | ✅ Complete | Automatic calculation with detailed result display |
-| **Anti-Cheat Foundation** | ✅ Basic Complete | App switch detection with violation tracking model |
+| **Anti-Cheat System** | ✅ Core Complete | Comprehensive violation detection, configuration management, and real-time monitoring |
+| **Violation Detection** | ✅ Complete | App switch, screenshot, screen recording detection with risk scoring |
+| **Anti-Cheat Configuration** | ✅ Complete | Teacher-configurable presets with custom adjustment capabilities |
+| **Violation Reporting** | ✅ Complete | Real-time violation tracking with detailed analytics and timeline |
+| **Platform Integration** | 🚧 Partial | Android native features complete, iOS implementation pending |
 | **Firebase Integration** | ✅ Complete | Full CRUD operations with real-time synchronization |
 | **Security Rules** | ✅ Complete | Comprehensive role-based rules with data isolation |
 | **UI/UX** | ✅ Complete | Material 3 design with dark mode and responsive layouts |

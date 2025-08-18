@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:testpoint/models/question_model.dart';
 import 'package:testpoint/models/group_model.dart';
 import 'package:testpoint/models/user_model.dart';
+import 'package:testpoint/models/anti_cheat_config_model.dart';
 
 enum TestStatus { draft, published, completed }
 
@@ -15,6 +16,7 @@ class Test {
   final String testMaker; // Firebase Auth UID of teacher who created the test
   final DateTime createdAt;
   final TestStatus status; // draft, published, or completed
+  final AntiCheatConfig antiCheatConfig; // Anti-cheat configuration
 
   // Additional local fields (not stored in Firebase)
   final Group? group; // Populated from groupId
@@ -31,6 +33,7 @@ class Test {
     required this.testMaker,
     required this.createdAt,
     this.status = TestStatus.draft,
+    this.antiCheatConfig = const AntiCheatConfig(), // Default balanced config
     this.group,
     this.questions,
     this.creator,
@@ -54,6 +57,7 @@ class Test {
       'test_maker': testMaker,
       'created_at': Timestamp.fromDate(createdAt),
       'status': status.name,
+      'anti_cheat_config': antiCheatConfig.toMap(),
     };
   }
 
@@ -68,6 +72,9 @@ class Test {
       testMaker: map['test_maker'] ?? '',
       createdAt: _parseDateTime(map['created_at']),
       status: _parseStatus(map['status']),
+      antiCheatConfig: map['anti_cheat_config'] != null 
+          ? AntiCheatConfig.fromMap(Map<String, dynamic>.from(map['anti_cheat_config']))
+          : const AntiCheatConfig(), // Default balanced config
     );
   }
 
