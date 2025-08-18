@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:testpoint/models/test_model.dart';
+import 'package:testpoint/models/question_model.dart';
 import 'package:testpoint/services/test_service.dart';
 
 import 'package:testpoint/models/test_session_model.dart';
@@ -175,6 +176,130 @@ class TeacherDashboardProvider with ChangeNotifier {
       
       final draftTest = test.copyWith(status: TestStatus.draft);
       
+      await _testService.updateTestStatus(draftTest);
+      
+      // Update local list
+      _allTests[testIndex] = draftTest;
+      notifyListeners();
+      
+      return true;
+    } catch (e) {
+      _setError('Failed to restore test to draft: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // View test questions
+  Future<List<Question>> viewTestQuestions(String testId) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      // Find the test
+      final test = _allTests.firstWhere(
+        (test) => test.id == testId,
+        orElse: () => throw Exception('Test not found'),
+      );
+
+      final questions = await _testService.getTestQuestions(testId);
+      return questions;
+    } catch (e) {
+      _setError('Failed to load test questions: $e');
+      return [];
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // View test results
+  Future<List<TestSession>> viewTestResults(String testId) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      final sessions = await _testService.getTestSessions(testId);
+      return sessions;
+    } catch (e) {
+      _setError('Failed to load test results: $e');
+      return [];
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // End quiz (complete test early)
+  Future<bool> endQuiz(String testId) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      // Find the test
+      final testIndex = _allTests.indexWhere((test) => test.id == testId);
+      if (testIndex == -1) {
+        throw Exception('Test not found');
+      }
+
+      final test = _allTests[testIndex];
+      
+      // Only ongoing tests can be ended
+      if (test.status != TestStatus.published) {
+        throw Exception('Only published tests can be ended');
+      }
+      
+      final completedTest = test.copyWith(status: TestStatus.completed);
+      
+      await _testService.updateTestStatus(completedTest);
+      
+      // Update local list
+      _allTests[testIndex] = completedTest;
+      notifyListeners();
+      
+      return true;
+    } catch (e) {
+      _setError('Failed to end quiz: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Delete test sessions (for restoring to draft with data cleanup)
+  Future<bool> deleteTestSessions(String testId) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      await _testService.deleteTestSessions(testId);
+      return true;
+    } catch (e) {
+      _setError('Failed to delete test sessions: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Enhanced restore to draft with session cleanup
+  Future<bool> restoreToDraftWithCleanup(String testId) async {
+    try {
+      _setLoading(true);
+      _clearError();
+
+      // Find the test
+      final testIndex = _allTests.indexWhere((test) => test.id == testId);
+      if (testIndex == -1) {
+        throw Exception('Test not found');
+      }
+
+      final test = _allTests[testIndex];
+      
+      // Delete all test sessions first
+      await _testService.deleteTestSessions(testId);
+      
+      // Update test status to draft
+      final draftTest = test.copyWith(status: TestStatus.draft);
       await _testService.updateTestStatus(draftTest);
       
       // Update local list

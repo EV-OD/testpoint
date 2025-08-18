@@ -410,4 +410,26 @@ class TestService {
       throw Exception('Failed to get test submissions: $e');
     }
   }
+
+  // Get questions for a test (alias for consistency)
+  Future<List<Question>> getTestQuestions(String testId) async {
+    return getQuestions(testId);
+  }
+
+  // Get all test sessions for a test (alias for consistency)
+  Future<List<TestSession>> getTestSessions(String testId) async {
+    return getTestSubmissions(testId);
+  }
+
+  // Delete all test sessions for a test
+  Future<void> deleteTestSessions(String testId) async {
+    try {
+      print('DEBUG: TestService.deleteTestSessions called for testId: $testId');
+      await _testRepository.deleteTestSessions(testId);
+      print('DEBUG: TestService.deleteTestSessions completed for testId: $testId');
+    } catch (e) {
+      print('DEBUG: Error in TestService.deleteTestSessions: $e');
+      throw Exception('Failed to delete test sessions: $e');
+    }
+  }
 }

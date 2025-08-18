@@ -8,6 +8,8 @@ import 'package:testpoint/features/teacher/screens/teacher_profile_screen.dart';
 import 'package:testpoint/features/teacher/screens/teacher_settings_screen.dart';
 import 'package:testpoint/features/teacher/screens/create_test_screen.dart';
 import 'package:testpoint/features/teacher/screens/test_details_screen.dart';
+import 'package:testpoint/features/teacher/screens/view_questions_screen.dart';
+import 'package:testpoint/features/teacher/screens/test_results_screen.dart';
 import 'package:testpoint/features/teacher/widgets/test_list_view.dart';
 import 'package:testpoint/models/test_model.dart';
 
@@ -224,6 +226,81 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           }
         }
         break;
+        
+      case 'view_questions':
+        final questions = await dashboardProvider.viewTestQuestions(test.id);
+        if (mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ViewQuestionsScreen(
+                testId: test.id,
+                testName: test.name,
+                questions: questions,
+              ),
+            ),
+          );
+        }
+        break;
+        
+      case 'view_results':
+        final sessions = await dashboardProvider.viewTestResults(test.id);
+        if (mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => TestResultsScreen(
+                test: test,
+                sessions: sessions,
+              ),
+            ),
+          );
+        }
+        break;
+        
+      case 'revert_to_draft':
+        final confirmed = await _showRevertToDraftConfirmation(test);
+        if (confirmed == true) {
+          final success = await dashboardProvider.restoreToDraftWithCleanup(test.id);
+          if (success && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Test reverted to draft successfully. All student submissions have been removed.'),
+                backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.amber.shade600 
+                    : Colors.amber.shade700,
+              ),
+            );
+          } else if (mounted && dashboardProvider.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(dashboardProvider.errorMessage!),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+        break;
+        
+      case 'end_quiz':
+        final confirmed = await _showEndQuizConfirmation(test);
+        if (confirmed == true) {
+          final success = await dashboardProvider.endQuiz(test.id);
+          if (success && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Quiz ended successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else if (mounted && dashboardProvider.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(dashboardProvider.errorMessage!),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+        break;
     }
     } catch (e) {
       if (mounted) {
@@ -305,6 +382,60 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   : Colors.amber.shade700,
             ),
             child: const Text('Restore to Draft'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showRevertToDraftConfirmation(Test test) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Revert to Draft'),
+        content: Text(
+          'Are you sure you want to revert "${test.name}" to draft status?\n\n⚠️ WARNING: This will permanently delete ALL student submissions and results for this test. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.amber.shade600 
+                  : Colors.amber.shade700,
+            ),
+            child: const Text('Revert to Draft'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showEndQuizConfirmation(Test test) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('End Quiz'),
+        content: Text(
+          'Are you sure you want to end "${test.name}" immediately?\n\nStudents who are currently taking the test will have their current progress automatically submitted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.red.shade400 
+                  : Colors.red.shade700,
+            ),
+            child: const Text('End Quiz'),
           ),
         ],
       ),

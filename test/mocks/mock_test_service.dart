@@ -2,6 +2,7 @@ import 'package:testpoint/services/test_service.dart';
 import 'package:testpoint/models/test_model.dart';
 import 'package:testpoint/models/question_model.dart';
 import 'package:testpoint/models/group_model.dart';
+import 'package:testpoint/models/test_session_model.dart';
 
 class MockTestService implements TestService {
   List<Test> _tests = [];
@@ -224,5 +225,48 @@ class MockTestService implements TestService {
     } catch (e) {
       return Stream.value(null);
     }
+  }
+
+  // Add the missing methods
+  @override
+  Future<List<Question>> getTestQuestions(String testId) async {
+    if (_delay != null) await Future.delayed(_delay!);
+    return _questions.where((q) => q.id.startsWith(testId)).toList();
+  }
+
+  @override
+  Future<List<TestSession>> getTestSessions(String testId) async {
+    if (_delay != null) await Future.delayed(_delay!);
+    return []; // Mock implementation
+  }
+
+  @override
+  Future<void> deleteTestSessions(String testId) async {
+    if (_delay != null) await Future.delayed(_delay!);
+    // Mock implementation - do nothing
+  }
+
+  @override
+  Future<TestSession?> getTestSession(String testId, String studentId) async {
+    if (_delay != null) await Future.delayed(_delay!);
+    return null; // Mock implementation
+  }
+
+  @override
+  Future<List<TestSession>> getTestSubmissions(String testId) async {
+    if (_delay != null) await Future.delayed(_delay!);
+    return []; // Mock implementation
+  }
+
+  @override
+  Future<List<Test>> getTestsByGroups(List<String> groupIds) async {
+    if (_delay != null) await Future.delayed(_delay!);
+    return _tests.where((test) => groupIds.contains(test.groupId)).toList();
+  }
+
+  @override
+  Future<void> submitTestSession(TestSession session) async {
+    if (_delay != null) await Future.delayed(_delay!);
+    // Mock implementation - do nothing
   }
 }

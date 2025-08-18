@@ -246,17 +246,27 @@ class TestListView extends StatelessWidget {
           },
           itemBuilder: (context) => [
             const PopupMenuItem(
-              value: 'view',
+              value: 'view_questions',
               child: Row(
                 children: [
-                  Icon(Icons.visibility, size: 16),
+                  Icon(Icons.quiz_outlined, size: 16),
                   SizedBox(width: 8),
-                  Text('View Details'),
+                  Text('View Questions'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'view_results',
+              child: Row(
+                children: [
+                  Icon(Icons.analytics, size: 16),
+                  SizedBox(width: 8),
+                  Text('View Results'),
                 ],
               ),
             ),
             PopupMenuItem(
-              value: 'restore_to_draft',
+              value: 'revert_to_draft',
               child: Row(
                 children: [
                   Icon(
@@ -268,11 +278,34 @@ class TestListView extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Restore to Draft', 
+                    'Revert to Draft', 
                     style: TextStyle(
                       color: Theme.of(context).brightness == Brightness.dark 
                           ? Colors.amber.shade300 
                           : Colors.amber.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'end_quiz',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.stop_circle, 
+                    size: 16, 
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.red.shade300 
+                        : Colors.red.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'End Quiz', 
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.red.shade300 
+                          : Colors.red.shade700,
                     ),
                   ),
                 ],

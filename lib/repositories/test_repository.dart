@@ -422,4 +422,28 @@ class TestRepository {
       throw Exception('Failed to get test submissions: $e');
     }
   }
+
+  // Delete all test sessions for a test
+  Future<void> deleteTestSessions(String testId) async {
+    try {
+      print('DEBUG: TestRepository.deleteTestSessions called for testId: $testId');
+      
+      // Get all test sessions for the test
+      final querySnapshot = await _testSessionsCollection
+          .where('test_id', isEqualTo: testId)
+          .get();
+      
+      // Delete each session
+      final batch = _firestore.batch();
+      for (final doc in querySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      await batch.commit();
+      print('DEBUG: TestRepository.deleteTestSessions deleted ${querySnapshot.docs.length} sessions for testId: $testId');
+    } catch (e) {
+      print('DEBUG: Error in TestRepository.deleteTestSessions: $e');
+      throw Exception('Failed to delete test sessions: $e');
+    }
+  }
 }
